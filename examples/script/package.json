@@ -5,19 +5,23 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
+    "create_all": "tsx src/uzh_create_all_final_new.ts",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "query": "tsx src/queryProcess.ts",
+    "query_four": "tsx src/queryLast4Processes.ts"
   },
   "dependencies": {
     "@ethereumjs/common": "^4.4.0",
     "@vocdoni/davinci-sdk": "file:../..",
     "chalk": "^5.3.0",
     "dotenv": "^16.4.7",
-    "ethers": "^6.7.1"
+    "ethers": "^6.7.1",
+    "snarkjs": "^0.7.5"
   },
   "devDependencies": {
     "@types/node": "^20.5.9",
-    "tsx": "^4.7.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.2.2"
   }
 }

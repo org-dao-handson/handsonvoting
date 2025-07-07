@@ -1,0 +1,22 @@
+[
+  {
+    "moneyInPool": 50000,
+    "title": "How should we allocate the pool of %%MONEY%% CHF UZHPOS? Vote Power is calculated via one peson one vote.",
+    "description": "We have collected %%MONEY%% CHF for student grants. Please choose the preferred distribution method."
+  },
+  {
+    "moneyInPool": 120000,
+    "title": "How should we allocate the pool of %%MONEY%% CHF UZHPOS? Vote Power is calculated proportionally to your contibution to the pool.",
+    "description": "Your vote will decide how %%MONEY%% CHF is spent on neighborhood improvements."
+  },
+  {
+    "moneyInPool": 7500,
+    "title": "How should we allocate the pool of %%MONEY%% CHF UZHPOS? Vote Power is calculated proportionally to your UZHPOS ownership.",
+    "description": "Help us direct the %%MONEY%% CHF sports budget to the activities you value most."
+  },
+  {
+    "moneyInPool": 250000,
+    "title": "How should we allocate the pool of %%MONEY%% CHF UZHPOS? Vote Power is calculated based on the square root of your UZHPOS ownership.",
+    "description": "Tell us where the %%MONEY%% CHF sustainability fund should go."
+  }
+]
