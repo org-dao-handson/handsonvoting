@@ -108,53 +108,35 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-
   useEffect(() => {
-  const connectWallet = async () => {
-    if ((window as any).ethereum) {
+    (async () => {
       try {
-        const prov = new BrowserProvider((window as any).ethereum);
-        const signer = await prov.getSigner();
-        const acct = await signer.getAddress();
-        setAddress(acct);
-      } catch (e) {
-        console.error('Wallet connection failed:', e);
-      }
-    }
-  };
-  connectWallet();
-}, []);
+        const res = await fetch('/election_1.json');
+        if (!res.ok) throw new Error(`Config load error: ${res.statusText}`);
+        const cfgJson = await res.json();
+        const cfg: ElectionDetails = {
+          processId: cfgJson.processId,
+          encryptionPubKey: cfgJson.encryptionPubKey,
+          censusRoot: cfgJson.censusRoot,
+          metadataUrl: cfgJson.metadataUrl,
+          censusId: cfgJson.censusId,
+        };
+        setDetails(cfg);
 
-
-  useEffect(() => {
-  let cancelled = false;
-
-  const fetchConfig = async () => {
-    try {
-      const res = await fetch(`/election_1.json?_=${Date.now()}`);
-      if (!res.ok) throw new Error(`Config load error: ${res.statusText}`);
-      const cfgJson = await res.json();
-      const cfg: ElectionDetails = {
-        processId: cfgJson.processId,
-        encryptionPubKey: cfgJson.encryptionPubKey,
-        censusRoot: cfgJson.censusRoot,
-        metadataUrl: cfgJson.metadataUrl,
-        censusId: cfgJson.censusId,
-      };
-      if (!cancelled) setDetails(cfg);
-
-      const api = new VocdoniApiService(apiUrl);
-      const census = await api.getParticipants(cfg.censusId);
-      if (!cancelled) {
+        const api = new VocdoniApiService(apiUrl);
+        const census = await api.getParticipants(cfg.censusId);
         setParticipants(census.map(p => ({ key: p.key, weight: p.weight })));
-        if (address) {
-          setEligible(census.some(p => p.key.toLowerCase() === address.toLowerCase()));
-        }
-      }
 
-      const hash = cfg.metadataUrl.split('/').pop() || '';
-      const meta = await api.getMetadata(hash);
-      if (!cancelled) {
+        if ((window as any).ethereum) {
+          const prov = new BrowserProvider((window as any).ethereum);
+          const signer = await prov.getSigner();
+          const acct = await signer.getAddress();
+          setAddress(acct);
+          setEligible(census.some(p => p.key.toLowerCase() === acct.toLowerCase()));
+        }
+
+        const hash = cfg.metadataUrl.split('/').pop() || '';
+        const meta = await api.getMetadata(hash);
         setQuestions(
           meta.questions.map(q => ({
             ...q,
@@ -167,23 +149,13 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
         const init: Record<number, number> = {};
         meta.questions.forEach((_, i) => { init[i] = -1; });
         setAnswers(init);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (e: any) {
-      if (!cancelled) setError(e.message);
-    } finally {
-      if (!cancelled) setLoading(false);
-    }
-  };
-
-  fetchConfig();
-  const interval = setInterval(fetchConfig, 10000);
-
-  return () => {
-    cancelled = true;
-    clearInterval(interval);
-  };
-}, [apiUrl, address]);
-
+    })();
+  }, [apiUrl]);
 
   useEffect(() => {
     if (!voteSubmitted || !voteId || !details) return;

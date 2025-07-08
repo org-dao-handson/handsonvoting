@@ -1,13 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  //output: 'export',
   // Remove or disable trailingSlash
-  trailingSlash: false,
-  async rewrites() {
-    return [
-      { source: '/api/admin/flag/', destination: '/api/admin/flag' },
-    ];
-  },
   basePath: process.env.NODE_ENV === 'production' ? '/davinci-sdk' : '',
   images: {
     unoptimized: true,

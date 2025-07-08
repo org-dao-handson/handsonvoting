@@ -1,98 +1,127 @@
 // src/queryLast4Processes.ts
+
 import 'dotenv/config'
 import { VocdoniApiService } from '../../../src/sequencer'
 
 const { API_URL, ORGANIZATION_ID } = process.env
 if (!API_URL || !ORGANIZATION_ID) {
-  console.error('❌ set API_URL and ORGANIZATION_ID in .env')
+  console.error('❌ Set API_URL and ORGANIZATION_ID in .env')
   process.exit(1)
 }
 
 async function main() {
-  const api = new VocdoniApiService(API_URL!)
+  const api = new VocdoniApiService(API_URL)
 
-  console.log(`🔍 fetching all process IDs…`)
+  console.log(`🔍 Fetching all process IDs…`)
   let allIds: string[] = []
   try {
     allIds = await api.listProcesses()
   } catch (err) {
-    console.error('❌ error listing processes:', err)
+    console.error('❌ Error listing processes:', err)
     process.exit(1)
   }
 
-  console.log(`ℹ️  found ${allIds.length} total processes; fetching details…`)
+  console.log(`ℹ️  Found ${allIds.length} total processes; fetching details…`)
   const details = await Promise.all(
     allIds.map(async id => {
       try {
         return await api.getProcess(id)
       } catch (err) {
-        console.error(`❌ error fetching process ${id}:`, err)
+        console.error(`❌ Error fetching process ${id}:`, err)
         return null
       }
     })
   )
 
   const validDetails = details.filter(
-    (d): d is { id: string; organizationId: string; creationTime?: string; duration?: number; status: string; metadataURI?: string } => Boolean(d)
+    (d): d is {
+      id: string
+      organizationId: string
+      status: number
+      encryptionKey: any
+      stateRoot: string
+      result: string[]
+      startTime: number
+      duration: number
+      metadataURI: string
+      ballotMode: { type: string; config: Record<string, any> }
+      census: Record<string, any>
+      metadata: Record<string, any>
+      voteCount: string
+      voteOverwrittenCount: string
+      isAcceptingVotes: boolean
+      sequencerStats: Record<string, any>
+    } => Boolean(d)
   )
 
-  // Filter to your org, then sort by creationTime if available, else by processId numeric value
   const filtered = validDetails.filter(
     p => p.organizationId.toLowerCase() === ORGANIZATION_ID.toLowerCase()
   )
+
   const sorted = filtered.sort((a, b) => {
-    const aTime = pDateValue(a.creationTime)
-    const bTime = pDateValue(b.creationTime)
-    if (!isNaN(aTime) || !isNaN(bTime)) {
-      return bTime - aTime
-    }
-    // fallback: sort by numeric processId
-    try {
-      return BigInt(b.id) > BigInt(a.id) ? 1 : BigInt(b.id) < BigInt(a.id) ? -1 : 0
-    } catch {
-      return 0
-    }
+    const aTime = a.startTime || 0
+    const bTime = b.startTime || 0
+    return bTime - aTime
   })
+
   const last4 = sorted.slice(0, 4)
 
   if (last4.length === 0) {
-    console.log(`⚠️ no processes found for org ${ORGANIZATION_ID}`)
+    console.log(`⚠️ No processes found for org ${ORGANIZATION_ID}`)
     return
   }
 
   console.log(`✅ Last ${last4.length} processes for ${ORGANIZATION_ID}:`)
   last4.forEach((p, i) => {
-    console.log(`\n— #${i+1} —`)
-    console.log(`ID:         ${p.id}`)
-    console.log(`Status:     ${p.status}`)
+    console.log(`\n— #${i + 1} —`)
+    console.log(`ID:             ${p.id}`)
+    console.log(`Status:         ${p.status}`)
 
-    // Created at
-    if (p.creationTime) {
-      const cd = new Date(p.creationTime)
-      console.log(`Created at: ${!isNaN(cd.valueOf()) ? cd.toISOString() : `<invalid> ${p.creationTime}`}`)
+    if (typeof p.startTime === 'number' && p.startTime > 0) {
+      const cd = new Date(p.startTime * 1000)
+      console.log(`Created at:     ${!isNaN(cd.valueOf()) ? cd.toISOString() : `<invalid> ${p.startTime}`}`)
     } else {
-      console.log(`Created at: <unknown>`)      
+      console.log(`Created at:     <unknown>`)
     }
 
-    // Duration & end time
     if (typeof p.duration === 'number') {
-      console.log(`Duration:   ${p.duration}s`)
-      const startMs = p.creationTime ? new Date(p.creationTime).valueOf() : NaN
-      if (!isNaN(startMs)) {
-        const endMs = startMs + p.duration * 1000
-        const ed = new Date(endMs)
-        console.log(`Ends at:    ${!isNaN(ed.valueOf()) ? ed.toISOString() : `<invalid end>`}`)
+      if (p.duration > 60 * 60 * 24 * 365 * 100) { // >100 years
+        console.log(`Duration:       <infinite> (${p.duration}s)`)
+      } else {
+        console.log(`Duration:       ${p.duration}s`)
+        if (typeof p.startTime === 'number' && p.startTime > 0) {
+          const endMs = (p.startTime + p.duration) * 1000
+          const ed = new Date(endMs)
+          console.log(`Ends at:        ${!isNaN(ed.valueOf()) ? ed.toISOString() : `<invalid end>`}`)
+        }
       }
+    } else {
+      console.log(`Duration:       <unknown>`)
     }
 
-    console.log(`Metadata:   ${p.metadataURI || '<none>'}`)
-  })
-}
+    console.log(`MetadataURI:    ${p.metadataURI || '<none>'}`)
+    console.log(`Ballot mode:    ${p.ballotMode?.type || '<unknown>'}`)
 
-function pDateValue(val?: string): number {
-  if (!val) return NaN
-  const d = new Date(val)
-  return isNaN(d.valueOf()) ? NaN : d.valueOf()
+    // Raw census display for debugging
+    console.log(`Raw census:     ${JSON.stringify(p.census, null, 2)}`)
+
+    // Normalized census data
+    // Normalized census data
+    const censusId =
+    p.census?.censusId ||               // future-proof: if Sequencer ever adds it
+    p.census?.censusRoot ||             // current OFF_CHAIN_TREE origin
+    p.census?.censusURI?.split('/').pop() || '<none>';
+
+    const censusRoot = p.census?.censusRoot ?? '<none>';
+    const censusURI  = p.census?.censusURI  ?? '<none>';
+    const censusOrigin = p.census?.censusOrigin ?? '<unknown>';
+
+    console.log(`Census origin:  ${censusOrigin}`);
+    console.log(`Census ID:      ${censusId}`);
+    console.log(`Census root:    ${censusRoot}`);
+    console.log(`Census URI:     ${censusURI}`);
+
+  })
 }
 
 main().catch(err => {

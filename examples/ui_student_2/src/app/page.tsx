@@ -1,17 +1,26 @@
-'use client';
+// src/app/page.tsx
+'use client'; // ← now required because we use React hooks here
 
+import dynamic from 'next/dynamic';
 import { useState, useCallback } from 'react';
 import Layout from '@/components/layout/Layout';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ConnectWalletScreen from '@/components/ConnectWalletScreen';
-import DonationView from '@/components/DonationView';
+// DonationView is client-only; disable SSR for it:
+const DonationView = dynamic(
+  () => import('@/components/DonationView'),
+  { ssr: false, loading: () => <div>Loading donation view…</div> }
+);
 import StepIndicator from '@/components/StepIndicator';
 import { ThemeProvider, createTheme, Box } from '@mui/material';
 import { Wallet, JsonRpcSigner } from 'ethers';
 import CensusCreationScreen from '@/components/CensusCreationScreen';
 import CreateElectionScreen from '@/components/CreateElectionScreen';
 import CheckElectionScreen from '@/components/CheckElectionScreen';
-import VotingScreen from '@/components/VotingScreen';
+const VotingScreen = dynamic(
+  () => import('@/components/VotingScreen'),
+  { ssr: false, loading: () => <div>Loading voting screen…</div> }
+);
 import EndProcessScreen from '@/components/EndProcessScreen';
 import ShowResultsScreen from '@/components/ShowResultsScreen';
 
@@ -52,18 +61,13 @@ enum Step {
 export default function Home() {
   const [currentStep, setCurrentStep] = useState<Step>(Step.Welcome);
   const [wallet, setWallet] = useState<Wallet | JsonRpcSigner | null>(null);
-  const [censusId, setCensusId] = useState<string | null>(null);
 
-  // Replace with your actual pool A address
   const POOL_A_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678';
 
   const handleWalletConnected = useCallback(
-    (connectedWallet: Wallet | JsonRpcSigner) => {
-      setWallet(connectedWallet);
-    },
+    (w: Wallet | JsonRpcSigner) => setWallet(w),
     []
   );
-
   const handleNext = () => setCurrentStep((prev) => prev + 1);
   const handleBack = () => setCurrentStep((prev) => prev - 1);
 
@@ -81,13 +85,18 @@ export default function Home() {
         );
       case Step.DonationView:
         return (
-      <DonationView
-        poolAddress={POOL_A_ADDRESS}
-        onNext={handleNext}
-      />
-      );
+          <DonationView
+            poolAddress={POOL_A_ADDRESS}
+            onNext={handleNext}
+          />
+        );
       case Step.Vote:
-        return <VotingScreen onNext={() => setCurrentStep(Step.EndProcess)} onBack={handleBack} />;
+        return (
+          <VotingScreen
+            onNext={() => setCurrentStep(Step.EndProcess)}
+            onBack={handleBack}
+          />
+        );
       case Step.EndProcess:
         return wallet ? (
           <EndProcessScreen
@@ -100,7 +109,11 @@ export default function Home() {
         );
       case Step.ShowResults:
         return wallet ? (
-          <ShowResultsScreen onNext={() => setCurrentStep(Step.Welcome)} onBack={handleBack} wallet={wallet} />
+          <ShowResultsScreen
+            onNext={() => setCurrentStep(Step.Welcome)}
+            onBack={handleBack}
+            wallet={wallet}
+          />
         ) : (
           <WelcomeScreen onNext={handleNext} />
         );

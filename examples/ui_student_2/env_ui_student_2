@@ -1,0 +1,28 @@
+
+# Vocdoni API endpoint
+NEXT_PUBLIC_API_URL=https://uzh.davinci.vote
+
+# Vocdoni API endpoint
+API_URL=https://uzh.davinci.vote
+# Ethereum RPC endpoint (for blockchain interactions)
+# You can get this from providers like Infura, Alchemy, or use public endpoints
+RPC_URL=http://uzh.ch4in.net:8549
+
+
+# Private key for transaction signing (without 0x prefix)
+PRIVATE_KEY=''
+
+
+
+# Optional: Custom contract addresses (if not provided, will use default deployed addresses)
+ORGANIZATION_REGISTRY_ADDRESS=0xf7BCE4546805547bE526Ca864d6722Ed193E51Aa
+PROCESS_REGISTRY_ADDRESS=0x69B16f67Bd2fB18bD720379E9C1Ef5EaD3872d67
+
+
+
+
+
+
+
+
+

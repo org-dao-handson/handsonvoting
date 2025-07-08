@@ -1,8 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Box, Button, Typography, TextField, Alert, CircularProgress } from '@mui/material';
-// Ethers v6: use BrowserProvider
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Typography,
+  TextField,
+  Alert,
+  CircularProgress,
+} from '@mui/material';
 import { BrowserProvider, parseEther } from 'ethers';
 
 type DonationViewProps = {
@@ -10,34 +16,46 @@ type DonationViewProps = {
   onNext: () => void;
 };
 
-export default function DonationView({ poolAddress, onNext }: DonationViewProps) {
-  const [amount, setAmount] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function DonationView({
+  poolAddress,
+  onNext,
+}: DonationViewProps) {
+  const [amount, setAmount] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
+  const [approved, setApproved] = useState<boolean>(false);
 
-  // After a successful donation, poll the server flag
+  const flagUrl = `${window.location.origin}/api/admin/flag`;
+
+  // Poll for admin approval continuously from mount
   useEffect(() => {
-    if (!success) return;
-    const interval = setInterval(async () => {
+    let cancelled = false;
+
+    const poll = async () => {
+      if (cancelled) return;
       try {
-        const res = await fetch('/api/admin/flag');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.approved) {
-          clearInterval(interval);
-          onNext();
+        const res = await fetch(flagUrl);
+        if (res.ok) {
+          const { approved: isApproved } = await res.json();
+          if (isApproved) {
+            setApproved(true);
+            return; // stop polling
+          }
         }
       } catch {
-        /* ignore */
+        // ignore
       }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [success, onNext]);
+      setTimeout(poll, 3000);
+    };
+
+    poll();
+    return () => { cancelled = true };
+  }, [flagUrl]);
 
   const handleDonate = async () => {
     setError(null);
-    setSuccess(null);
+    setSuccessTxHash(null);
 
     if (!amount || isNaN(Number(amount))) {
       setError('Please enter a valid ETH amount');
@@ -54,50 +72,47 @@ export default function DonationView({ poolAddress, onNext }: DonationViewProps)
       await provider.send('eth_requestAccounts', []);
       const signer = await provider.getSigner();
 
-      // Fetch current fee data for EIP-1559
-      const feeData = await provider.getFeeData();
-      if (!feeData.maxFeePerGas || !feeData.maxPriorityFeePerGas) {
-        throw new Error('Unable to fetch gas fee data');
-      }
-
-      // Build transaction with explicit fee fields
-      const txParams = {
+      const tx = await signer.sendTransaction({
         to: poolAddress,
         value: parseEther(amount),
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-        maxFeePerGas: feeData.maxFeePerGas,
-      };
+      });
+      setSuccessTxHash(tx.hash);
 
-      const tx = await signer.sendTransaction(txParams);
       await tx.wait();
-
-      setSuccess(tx.hash);
-      setAmount('');
     } catch (e: any) {
-      console.error('Donation error', e);
-      setError(e.message || 'Transaction failed');
+      console.error('Donation error:', e);
+      setError(e?.message || 'Transaction failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', mt: 4, p: 2, border: '1px solid #eee', borderRadius: 2 }}>
+    <Box
+      sx={{
+        maxWidth: 400,
+        mx: 'auto',
+        mt: 4,
+        p: 2,
+        border: '1px solid #eee',
+        borderRadius: 2,
+      }}
+    >
       <Typography variant="h6" gutterBottom>
-        How much money would you like to donate to pool A ({poolAddress})?
+        Donate to pool A: <code>{poolAddress}</code>
       </Typography>
 
-      {!success && (
+      {!successTxHash ? (
         <>
           <TextField
             label="Amount (ETH)"
+            type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             fullWidth
             disabled={loading}
             sx={{ mb: 2 }}
           />
-
           <Button
             variant="contained"
             fullWidth
@@ -107,16 +122,25 @@ export default function DonationView({ poolAddress, onNext }: DonationViewProps)
           >
             {loading ? 'Sending…' : 'Donate'}
           </Button>
-
-          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
         </>
-      )}
-
-      {success && (
+      ) : (
         <Alert severity="success" sx={{ mt: 2 }}>
-          Donation confirmed! Tx hash: {success}. Waiting for approval...
+          Donation sent! Tx hash{' '}
+          <code style={{ wordBreak: 'break-all' }}>{successTxHash}</code>.
         </Alert>
       )}
+
+      {/* Next button always visible, enabled as soon as approved */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+        <Button variant="contained" onClick={onNext} disabled={!approved}>
+          Next
+        </Button>
+      </Box>
     </Box>
   );
 }
