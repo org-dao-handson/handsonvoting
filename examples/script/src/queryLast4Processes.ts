@@ -34,36 +34,14 @@ async function main() {
   )
 
   const validDetails = details.filter(
-    (d): d is {
-      id: string
-      organizationId: string
-      status: number
-      encryptionKey: any
-      stateRoot: string
-      result: string[]
-      startTime: number
-      duration: number
-      metadataURI: string
-      ballotMode: { type: string; config: Record<string, any> }
-      census: Record<string, any>
-      metadata: Record<string, any>
-      voteCount: string
-      voteOverwrittenCount: string
-      isAcceptingVotes: boolean
-      sequencerStats: Record<string, any>
-    } => Boolean(d)
+    (d): d is Awaited<ReturnType<typeof api.getProcess>> => Boolean(d)
   )
 
   const filtered = validDetails.filter(
     p => p.organizationId.toLowerCase() === ORGANIZATION_ID.toLowerCase()
   )
 
-  const sorted = filtered.sort((a, b) => {
-    const aTime = a.startTime || 0
-    const bTime = b.startTime || 0
-    return bTime - aTime
-  })
-
+  const sorted = filtered.sort((a, b) => (b.startTime || 0) - (a.startTime || 0))
   const last4 = sorted.slice(0, 4)
 
   if (last4.length === 0) {
@@ -72,27 +50,38 @@ async function main() {
   }
 
   console.log(`✅ Last ${last4.length} processes for ${ORGANIZATION_ID}:`)
-  last4.forEach((p, i) => {
+
+  // Use for…of so that each await actually blocks until complete
+  for (const [i, p] of last4.entries()) {
     console.log(`\n— #${i + 1} —`)
     console.log(`ID:             ${p.id}`)
     console.log(`Status:         ${p.status}`)
 
+    // Created at
     if (typeof p.startTime === 'number' && p.startTime > 0) {
       const cd = new Date(p.startTime * 1000)
-      console.log(`Created at:     ${!isNaN(cd.valueOf()) ? cd.toISOString() : `<invalid> ${p.startTime}`}`)
+      console.log(
+        `Created at:     ${
+          !isNaN(cd.valueOf()) ? cd.toISOString() : `<invalid> ${p.startTime}`
+        }`
+      )
     } else {
       console.log(`Created at:     <unknown>`)
     }
 
+    // Duration and end time
     if (typeof p.duration === 'number') {
-      if (p.duration > 60 * 60 * 24 * 365 * 100) { // >100 years
+      if (p.duration > 60 * 60 * 24 * 365 * 100) {
         console.log(`Duration:       <infinite> (${p.duration}s)`)
       } else {
         console.log(`Duration:       ${p.duration}s`)
-        if (typeof p.startTime === 'number' && p.startTime > 0) {
-          const endMs = (p.startTime + p.duration) * 1000
-          const ed = new Date(endMs)
-          console.log(`Ends at:        ${!isNaN(ed.valueOf()) ? ed.toISOString() : `<invalid end>`}`)
+        if (p.startTime && p.startTime > 0) {
+          const ed = new Date((p.startTime + p.duration) * 1000)
+          console.log(
+            `Ends at:        ${
+              !isNaN(ed.valueOf()) ? ed.toISOString() : `<invalid end>`
+            }`
+          )
         }
       }
     } else {
@@ -101,27 +90,34 @@ async function main() {
 
     console.log(`MetadataURI:    ${p.metadataURI || '<none>'}`)
     console.log(`Ballot mode:    ${p.ballotMode?.type || '<unknown>'}`)
-
-    // Raw census display for debugging
     console.log(`Raw census:     ${JSON.stringify(p.census, null, 2)}`)
 
-    // Normalized census data
-    // Normalized census data
+    // Normalize census fields
     const censusId =
-    p.census?.censusId ||               // future-proof: if Sequencer ever adds it
-    p.census?.censusRoot ||             // current OFF_CHAIN_TREE origin
-    p.census?.censusURI?.split('/').pop() || '<none>';
+      p.census?.censusId ||
+      p.census?.censusRoot ||
+      p.census?.censusURI?.split('/').pop() ||
+      '<none>'
+    const censusRoot = p.census?.censusRoot ?? '<none>'
+    const censusURI = p.census?.censusURI ?? '<none>'
+    const censusOrigin = p.census?.censusOrigin ?? '<unknown>'
 
-    const censusRoot = p.census?.censusRoot ?? '<none>';
-    const censusURI  = p.census?.censusURI  ?? '<none>';
-    const censusOrigin = p.census?.censusOrigin ?? '<unknown>';
+    console.log(`Census origin:  ${censusOrigin}`)
+    console.log(`Census ID:      ${censusId}`)
+    console.log(`Census root:    ${censusRoot}`)
+    console.log(`Census URI:     ${censusURI}`)
 
-    console.log(`Census origin:  ${censusOrigin}`);
-    console.log(`Census ID:      ${censusId}`);
-    console.log(`Census root:    ${censusRoot}`);
-    console.log(`Census URI:     ${censusURI}`);
-
-  })
+    // **Here’s the awaited call that now actually waits**
+    try {
+      const proof = await api.getCensusProof(
+        censusRoot,
+        '0x6382Ae2e608EDB07742Be3F5BAa13e20CBc8EbcB'
+      )
+      console.log(`Weight of participant: ${proof.value}`)
+    } catch (err) {
+      console.error(`❌ Error fetching census proof for ${censusRoot}:`, err)
+    }
+  }
 }
 
 main().catch(err => {
