@@ -1,13 +1,13 @@
 // app/api/admin/flag/route.ts
 import { NextResponse } from 'next/server';
 
-let approved = false;
+let openA = false;
 
 export function GET() {
-  return NextResponse.json({ approved });
+  return NextResponse.json({ openA });
 }
 
 export function POST() {
-  approved = true;
-  return NextResponse.json({ approved });
+  openA = !openA;
+  return NextResponse.json({ openA });
 }

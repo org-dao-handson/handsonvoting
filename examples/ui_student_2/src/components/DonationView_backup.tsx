@@ -1,4 +1,3 @@
-// File: components/DonationView.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -14,13 +13,11 @@ import { BrowserProvider, parseEther } from 'ethers';
 
 type DonationViewProps = {
   poolAddress: string;
-  poolName: string;
   onNext: () => void;
 };
 
 export default function DonationView({
   poolAddress,
-  poolName,
   onNext,
 }: DonationViewProps) {
   const [amount, setAmount] = useState<string>('');
@@ -30,12 +27,12 @@ export default function DonationView({
   const [approved, setApproved] = useState<boolean>(false);
 
   const flagUrl = `${window.location.origin}/api/admin/flag`;
-  const voteAopenUrl = `${window.location.origin}/api/admin/voteAopen`;
 
-  // Poll for admin approval
+  // Poll for admin approval continuously from mount
   useEffect(() => {
     let cancelled = false;
-    const pollApproval = async () => {
+
+    const poll = async () => {
       if (cancelled) return;
       try {
         const res = await fetch(flagUrl);
@@ -43,44 +40,18 @@ export default function DonationView({
           const { approved: isApproved } = await res.json();
           if (isApproved) {
             setApproved(true);
-            return; // stop polling once approved
+            return; // stop polling
           }
         }
       } catch {
         // ignore
       }
-      setTimeout(pollApproval, 3000);
+      setTimeout(poll, 3000);
     };
-    pollApproval();
-    return () => {
-      cancelled = true;
-    };
-  }, [flagUrl]);
 
-  // Poll for voteAopen flag to auto-skip
-  useEffect(() => {
-    let cancelled = false;
-    const pollVoteAopen = async () => {
-      if (cancelled) return;
-      try {
-        const res = await fetch(voteAopenUrl);
-        if (res.ok) {
-          const { voteAopen: isOpen } = await res.json();
-          if (!isOpen) {
-            onNext();
-            return; // skip to next immediately
-          }
-        }
-      } catch {
-        // ignore
-      }
-      setTimeout(pollVoteAopen, 3000);
-    };
-    pollVoteAopen();
-    return () => {
-      cancelled = true;
-    };
-  }, [voteAopenUrl, onNext]);
+    poll();
+    return () => { cancelled = true };
+  }, [flagUrl]);
 
   const handleDonate = async () => {
     setError(null);
@@ -128,7 +99,7 @@ export default function DonationView({
       }}
     >
       <Typography variant="h6" gutterBottom>
-        Donate to {poolName}: <code>{poolAddress}</code>
+        Donate to pool A: <code>{poolAddress}</code>
       </Typography>
 
       {!successTxHash ? (

@@ -66,8 +66,6 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   const [voteId, setVoteId] = useState<string | null>(null);
   const [voteStatus, setVoteStatus] = useState<string | null>(null);
 
-  const [myWeight, setMyWeight] = useState<string | null>(null);
-
   useEffect(() => {
     async function init() {
       try {
@@ -106,10 +104,8 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
             const weightHex = proof.weight;
             const weightNum = BigInt(weightHex.startsWith('0x') ? weightHex.slice(2) : weightHex);
             setEligible(weightNum > 0n);
-            setMyWeight(weightNum.toString());
           } catch {
             setEligible(true);
-            setMyWeight(null);
           }
         }
 
@@ -277,13 +273,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
         <>
           {questions.map((q, i) => (
             <Box key={i} sx={{ mb: 2 }}>
-              <Typography variant="h6">{q.title?.default}</Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>{q.description?.default}</Typography>
-              {eligible && myWeight !== null && (
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  <strong>Hence, your vote power in this round is:</strong> {myWeight}
-                </Typography>
-              )}
+              <Typography variant="h6">{q.title.default}</Typography>
               <RadioGroup
                 value={answers[i]}
                 onChange={(e) => setAnswers((prev) => ({ ...prev, [i]: +e.target.value }))}
@@ -323,4 +313,3 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
       )}
     </Box>
   );
-}

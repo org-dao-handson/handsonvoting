@@ -9,7 +9,10 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "query": "tsx src/queryProcess.ts",
-    "query_four": "tsx src/queryLast4Processes.ts"
+    "query_four": "tsx src/queryLast4Processes.ts",
+    "checkLastVoted": "tsx src/checkLastVotingStatus.ts",
+    "createConfig":"tsx src/createConfig.ts",
+    "createVote": "tsx src/createVoteProcess.ts"
   },
   "dependencies": {
     "@ethereumjs/common": "^4.4.0",

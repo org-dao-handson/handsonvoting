@@ -63,17 +63,15 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', textAlign: 'center' }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Welcome to DAVINCI Demo
+        Welcome to the UZH Public Goods Game
       </Typography>
 
       <Typography variant="h6" color="primary" gutterBottom sx={{ fontStyle: 'italic' }}>
-        Decentralized Autonomous Vote Integrity Network with Cryptographic Inference
+        DDiB 2025
       </Typography>
       
       <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 4 }}>
-        DAVINCI is a voting protocol designed for mass adoption, privacy, and security. 
-        It enables high-frequency, low-cost elections while ensuring transparency, 
-        censorship resistance, anticoercion and integrity.
+        Public goods are important and need to be maintained! Lets not talk about the commons here :)
       </Typography>
 
       <Card sx={{ mb: 4 }}>
@@ -103,7 +101,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
             </Box>
           ) : isConnected ? (
             <Alert severity="success" sx={{ mb: 2 }}>
-              Connected to Vocdoni API
+              Connected to UZH
             </Alert>
           ) : null}
 
@@ -115,7 +113,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
             <ListItem>
               <ListItemText 
                 primary="Network" 
-                secondary="Sepolia Testnet" 
+                secondary="UZH PoS" 
               />
             </ListItem>
             <ListItem>
