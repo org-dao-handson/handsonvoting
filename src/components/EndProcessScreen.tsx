@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Pending';
+import { JsonRpcSigner } from "ethers";
 import {
   ProcessRegistryService,
   ProcessStatus,
@@ -25,6 +26,7 @@ import { Wallet, JsonRpcProvider } from 'ethers';
 interface EndProcessScreenProps {
   onBack: () => void;
   onNext: () => void;
+  wallet: Wallet | JsonRpcSigner;  // <-- Add this line
 }
 
 interface ProcessState {

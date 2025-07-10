@@ -120,7 +120,7 @@ export default function Home() {
             poolAddress={pool.address}
             poolName={pool.name}
             onNext={handleNext}
-            onBack={handleBack}
+            //onBack={handleBack}
           />
         );
       } else {

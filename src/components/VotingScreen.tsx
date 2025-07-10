@@ -71,13 +71,21 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   useEffect(() => {
     async function init() {
       try {
+        if (!apiUrl) {
+          throw new Error("apiUrl is required!");
+        }
         const api = new VocdoniApiService(apiUrl);
         // 1. discover latest process
         const allIds = await api.listProcesses();
         const allDetails = await Promise.all(
           allIds.map(async (id) => { try { return await api.getProcess(id); } catch { return null; } })
         );
+        if(!orgId) {
+            throw new Error("orgId is required!");
+          }
         const filtered = (allDetails as any[]).filter(
+          
+          
           (p) => p && p.organizationId.toLowerCase() === orgId.toLowerCase()
         );
         if (!filtered.length) throw new Error(`No processes found for org ${orgId}`);
@@ -140,7 +148,11 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   // poll vote status after submission
   useEffect(() => {
     if (!voteSubmitted || !voteId || !details) return;
+    if (!apiUrl) {
+      throw new Error("apiUrl is required!");
+    }
     const api = new VocdoniApiService(apiUrl);
+    
     const interval = setInterval(async () => {
       try {
         const { status } = await api.getVoteStatus(details.processId.replace(/^0x/, ''), voteId);
