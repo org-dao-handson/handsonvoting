@@ -16,12 +16,14 @@ type DonationViewProps = {
   poolAddress: string;
   poolName: string;
   onNext: () => void;
+  onBack: () => void;
 };
 
 export default function DonationView({
   poolAddress,
   poolName,
   onNext,
+  onBack,
 }: DonationViewProps) {
   const [amount, setAmount] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -164,8 +166,11 @@ export default function DonationView({
         </Alert>
       )}
 
-      {/* Next button always visible, enabled as soon as approved */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+      {/* Navigation buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+        <Button variant="outlined" onClick={onBack}>
+          Back
+        </Button>
         <Button variant="contained" onClick={onNext} disabled={!approved}>
           Next
         </Button>
