@@ -97,6 +97,7 @@ export default function Home() {
             poolAddress={POOL_A_ADDRESS}
             poolName={POOL_NAME}
             onNext={handleNext}
+            onBack={handleBack}
           />
         );
       case Step.Vote:
