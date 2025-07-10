@@ -29,6 +29,10 @@ const nextConfig = {
     };
     return config;
   },
+  // Explicitly set the app directory feature
+  experimental: {
+    appDir: true
+  },
 };
 
 module.exports = nextConfig;
