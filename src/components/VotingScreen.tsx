@@ -95,8 +95,8 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
         setDetails(cfg);
 
         // 2. wallet connection & eligibility & proof
-        if ((window as any).ethereum) {
-          const provider = new BrowserProvider((window as any).ethereum);
+        if (window.ethereum) {
+          const provider = new BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
           const acct = await signer.getAddress();
           setAddress(acct);
@@ -212,7 +212,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
       setActiveStep(4);
 
       // 6. sign & submit
-      const provider = new BrowserProvider((window as any).ethereum);
+      const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const sigBytes = hexStringToUint8Array(outVoteId);
       const signature = await signer.signMessage(sigBytes);
