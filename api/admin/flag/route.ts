@@ -1,8 +1,6 @@
-export const dynamic = "force-static";
+// app/api/admin/flag/route.ts
 import { NextResponse } from 'next/server';
 
-// Note: With static export, this state won't persist between page loads
-// as it's generated at build time only
 let openA = false;
 
 export function GET() {
@@ -10,7 +8,6 @@ export function GET() {
 }
 
 export function POST() {
-  // This won't actually work in a static export
-  // Consider using client-side state management instead
-  return NextResponse.json({ message: "Static exports don't support true API routes" });
+  openA = !openA;
+  return NextResponse.json({ openA });
 }

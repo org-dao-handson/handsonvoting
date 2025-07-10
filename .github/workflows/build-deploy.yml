@@ -51,16 +51,14 @@ jobs:
             echo "No .env file found"
           fi
 
-      # .github/workflows/build-deploy.yml (just the build step)
       - name: Build Next.js app
-        run: NEXT_TELEMETRY_DISABLED=1 yarn build
+        run: NEXT_TELEMETRY_DISABLED=1 NEXT_SKIP_TYPE_CHECK=1 NODE_ENV=development yarn build
         env:
-          NODE_ENV: production  # Changed from development
+          # Override with secrets for sensitive values
           SEQUENCER_API_URL: ${{ secrets.SEQUENCER_API_URL }}
           CENSUS_API_URL: ${{ secrets.CENSUS_API_URL }}
           RPC_URL: ${{ secrets.RPC_URL }}
           ESLINT_NO_DEV_ERRORS: true
-          NEXT_SKIP_TYPE_CHECK: 1  # Move this to env instead of in command
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
