@@ -1,22 +1,30 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
-  experimental: {
-    // Required for Next.js 15.x with React 19
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
+  //output: 'export',
+  // Remove or disable trailingSlash
+  basePath: process.env.NODE_ENV === 'production' ? '/davinci-sdk' : '',
+  images: {
+    unoptimized: true,
   },
-  // Using the turbopack option is already set in your package.json dev script
-  serverRuntimeConfig: {
-    port: process.env.PORT || 3000
+  eslint: {
+    ignoreDuringBuilds: true,
   },
-  // Handle the local file dependency
-  webpack: (config, { isServer }) => {
-    // Any webpack customizations for @vocdoni/davinci-sdk if needed
+  env: {
+    API_URL: process.env.API_URL,
+    RPC_URL: process.env.RPC_URL,
+    PRIVATE_KEY: process.env.PRIVATE_KEY,
+    ORGANIZATION_REGISTRY_ADDRESS: process.env.ORGANIZATION_REGISTRY_ADDRESS,
+    PROCESS_REGISTRY_ADDRESS: process.env.PROCESS_REGISTRY_ADDRESS,
+  },
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    };
     return config;
-  }
+  },
 };
 
 module.exports = nextConfig;
