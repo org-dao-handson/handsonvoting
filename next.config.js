@@ -2,7 +2,7 @@
 const nextConfig = {
   //output: 'export',
   // Remove or disable trailingSlash
-  basePath: process.env.NODE_ENV === 'production' ? '/davinci-sdk' : '',
+  basePath: process.env.NODE_ENV === 'production' ? '' : '',
   images: {
     unoptimized: true,
   },
