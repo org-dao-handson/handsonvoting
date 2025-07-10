@@ -2,18 +2,12 @@
 const nextConfig = {
   //output: 'export',
   // Remove or disable trailingSlash
-  basePath: process.env.NODE_ENV === 'production' ? '/handsonvoting' : '',
+  basePath: process.env.NODE_ENV === 'production' ? '/davinci-sdk' : '',
   images: {
     unoptimized: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    ignoreBuildErrors: true,
   },
   env: {
     API_URL: process.env.API_URL,

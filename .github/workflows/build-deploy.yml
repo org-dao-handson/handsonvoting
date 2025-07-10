@@ -52,8 +52,9 @@ jobs:
           fi
 
       - name: Build Next.js app
-        run: NEXT_TELEMETRY_DISABLED=1 NEXT_SKIP_TYPE_CHECK=1 NODE_ENV=development yarn build
+        run: yarn build
         env:
+          NODE_ENV: development
           # Override with secrets for sensitive values
           SEQUENCER_API_URL: ${{ secrets.SEQUENCER_API_URL }}
           CENSUS_API_URL: ${{ secrets.CENSUS_API_URL }}
