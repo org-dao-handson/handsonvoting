@@ -54,7 +54,7 @@ jobs:
       - name: Build Next.js app
         run: yarn build
         env:
-          NODE_ENV: development
+          NODE_ENV: production
           # Override with secrets for sensitive values
           SEQUENCER_API_URL: ${{ secrets.SEQUENCER_API_URL }}
           CENSUS_API_URL: ${{ secrets.CENSUS_API_URL }}
