@@ -1,17 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  //output: 'export',
-  basePath: process.env.NODE_ENV === 'production' ? '/davinci-sdk' : '',
+  output: 'export',
+  // Remove or disable trailingSlash
+  basePath: process.env.NODE_ENV === 'production' ? '/handsonvoting' : '',
   images: {
     unoptimized: true,
   },
-  typescript: {
-    // ⚠️ Warning: Skips type checking during build
-    ignoreBuildErrors: true,
-  },
   eslint: {
-    // Skip ESLint errors during build
     ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    ignoreBuildErrors: true,
   },
   env: {
     API_URL: process.env.API_URL,
