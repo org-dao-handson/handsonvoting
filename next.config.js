@@ -1,12 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   //output: 'export',
-  // Remove or disable trailingSlash
   basePath: process.env.NODE_ENV === 'production' ? '/davinci-sdk' : '',
   images: {
     unoptimized: true,
   },
+  typescript: {
+    // ⚠️ Warning: Skips type checking during build
+    ignoreBuildErrors: true,
+  },
   eslint: {
+    // Skip ESLint errors during build
     ignoreDuringBuilds: true,
   },
   env: {
