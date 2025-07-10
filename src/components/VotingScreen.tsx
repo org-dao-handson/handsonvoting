@@ -23,8 +23,16 @@ import {
   InfoResponse,
   type IQuestion,
   type MultiLanguage,
+  type CensusProof,
 } from '@vocdoni/davinci-sdk';
 import { BrowserProvider } from 'ethers';
+
+// Define type for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 interface ElectionDetails {
   processId: string;
@@ -61,7 +69,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [proofObj, setProofObj] = useState<any>(null);
+  const [proofObj, setProofObj] = useState<CensusProof | null>(null);
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [voteId, setVoteId] = useState<string | null>(null);
   const [voteStatus, setVoteStatus] = useState<string | null>(null);

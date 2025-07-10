@@ -16,12 +16,14 @@ type DonationViewProps = {
   poolAddress: string;
   poolName: string;
   onNext: () => void;
+  onBack?: () => void; // Making this optional for better compatibility
 };
 
 export default function DonationView({
   poolAddress,
   poolName,
   onNext,
+  onBack,
 }: DonationViewProps) {
   const [amount, setAmount] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -29,8 +31,10 @@ export default function DonationView({
   const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
   const [approved, setApproved] = useState<boolean>(false);
 
-  const flagUrl = `${window.location.origin}/api/admin/flag`;
-  const voteAopenUrl = `${window.location.origin}/api/admin/voteAopen`;
+  // Use dynamic URL generation with fallbacks for production
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const flagUrl = `${baseUrl}/api/admin/flag`;
+  const voteAopenUrl = `${baseUrl}/api/admin/voteAopen`;
 
   // Poll for admin approval
   useEffect(() => {
@@ -90,14 +94,14 @@ export default function DonationView({
       setError('Please enter a valid ETH amount');
       return;
     }
-    if (!(window as any).ethereum) {
+    if (!window.ethereum) {
       setError('MetaMask not found');
       return;
     }
 
     try {
       setLoading(true);
-      const provider = new BrowserProvider((window as any).ethereum);
+      const provider = new BrowserProvider(window.ethereum);
       await provider.send('eth_requestAccounts', []);
       const signer = await provider.getSigner();
 
