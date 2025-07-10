@@ -15,13 +15,6 @@ import {
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
-// Define window.ethereum type
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 interface WalletConnectProps {
   onWalletConnected: (wallet: Wallet | JsonRpcSigner) => void;
 }
@@ -73,9 +66,7 @@ export default function WalletConnect({ onWalletConnected }: WalletConnectProps)
         throw new Error('Invalid private key format');
       }
 
-      // Use a fallback RPC URL if env variable is not defined
-      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.sepolia.org';
-      const provider = new JsonRpcProvider(rpcUrl);
+      const provider = new JsonRpcProvider(process.env.RPC_URL);
       const wallet = new Wallet(privateKey, provider);
       const address = await wallet.getAddress();
       const balance = await provider.getBalance(address);
