@@ -1,27 +1,44 @@
-# Dependencies
-node_modules/
-yarn-error.log
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Build output
-dist/
-build/
-*.tsbuildinfo
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+yarn.lock
+davinci-sdk.tgz
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# testing
+/coverage
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+# next.js
+/.next/
+/out/
 
-# Testing
-coverage/
+# production
+/build
 
-# Misc
+# misc
 .DS_Store
-*.log
-.cache/
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
