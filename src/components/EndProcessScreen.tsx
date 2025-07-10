@@ -20,12 +20,11 @@ import {
   ProcessStatus,
   TxStatus,
 } from '@vocdoni/davinci-sdk';
-import { Wallet, JsonRpcProvider, JsonRpcSigner } from 'ethers';
+import { Wallet, JsonRpcProvider } from 'ethers';
 
 interface EndProcessScreenProps {
   onBack: () => void;
   onNext: () => void;
-  wallet: Wallet | JsonRpcSigner;
 }
 
 interface ProcessState {
@@ -36,7 +35,7 @@ interface ProcessState {
   txStatus: string;
 }
 
-export default function EndProcessScreen({ onBack, onNext, wallet }: EndProcessScreenProps) {
+export default function EndProcessScreen({ onBack, onNext }: EndProcessScreenProps) {
   const [processState, setProcessState] = useState<ProcessState>({
     processEnded: false,
     resultsReady: false,
@@ -64,7 +63,7 @@ export default function EndProcessScreen({ onBack, onNext, wallet }: EndProcessS
 
       // Provider and signer
       const provider = new JsonRpcProvider(rpcUrl);
-      // const wallet = new Wallet(privateKey.replace(/^0x/, ''), provider);
+      const wallet = new Wallet(privateKey.replace(/^0x/, ''), provider);
 
       // Read process registry address
       const registryAddress =
