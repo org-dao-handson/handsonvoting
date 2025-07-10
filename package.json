@@ -16,6 +16,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
+    "@mui/system": "^5.15.14",
     "@mui/x-date-pickers": "^8.5.2",
     "@vocdoni/davinci-sdk": "file:./vocdoni-davinci-sdk-v0.0.2.tgz",
     "date-fns": "^4.1.0",
