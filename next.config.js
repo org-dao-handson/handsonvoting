@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  //output: 'export',
+  output: 'export',
   // Remove or disable trailingSlash
   basePath: process.env.NODE_ENV === 'production' ? '/handsonvoting' : '',
   images: {
