@@ -2,8 +2,10 @@
   "name": "ui",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
-    "preinstall": "cd ../.. && yarn pack && mv vocdoni-davinci-sdk-v*.tgz examples/ui/davinci-sdk.tgz",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
@@ -15,7 +17,7 @@
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
     "@mui/x-date-pickers": "^8.5.2",
-    "@vocdoni/davinci-sdk": "./davinci-sdk.tgz",
+    "@vocdoni/davinci-sdk": "file:./vocdoni-davinci-sdk-v0.0.2.tgz",
     "date-fns": "^4.1.0",
     "next": "15.3.3",
     "react": "^19.0.0",
