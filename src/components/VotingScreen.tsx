@@ -21,9 +21,8 @@ import {
   VoteRequest,
   BallotProofInputs,
   InfoResponse,
-  type IQuestion,
-  type MultiLanguage,
 } from '@vocdoni/davinci-sdk';
+import type { IQuestion, MultiLanguage } from '@vocdoni/davinci-sdk';
 import { BrowserProvider } from 'ethers';
 
 interface ElectionDetails {
