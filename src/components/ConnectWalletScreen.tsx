@@ -28,8 +28,8 @@ export default function ConnectWalletScreen({ onBack, onNext, onWalletConnected 
       </Typography>
 
       <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 4 }}>
-        Connect your wallet to interact with the Vocdoni voting protocol. You can use MetaMask 
-        or enter your private key directly. Make sure you have some Sepolia ETH to proceed.
+        Connect your wallet to interact with the voting protocol. You can use MetaMask
+        or enter your private key directly. Make sure you have some UZHETH to proceed.
       </Typography>
 
       <WalletConnect onWalletConnected={handleWalletConnected} />

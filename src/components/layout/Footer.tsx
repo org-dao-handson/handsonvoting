@@ -16,12 +16,8 @@ export default function Footer() {
     >
       <Container maxWidth="sm">
         <Typography variant="body2" color="text.secondary" align="center">
-          {'© '}
-          <Link color="inherit" href="https://davinci.vote/" target="_blank" rel="noopener noreferrer">
-            DAVINCI
-          </Link>{' '}
-          {new Date().getFullYear()}
-          {' - Powered by Davinci SDK'}
+          {'UZH BDLT Research Group; '}
+          {' Powered by Davinci SDK'}
         </Typography>
       </Container>
     </Box>

@@ -6,8 +6,8 @@ import { WalletProvider } from '@/context/WalletContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Davinci Demo',
-  description: 'A demo application showcasing the Vocdoni Davinci SDK capabilities',
+  title: 'UZH DDIB25 Public Goods Game',
+  description: 'UZH DDIB25 Public Goods Game powered by vocdoni',
 };
 
 export default function RootLayout({
