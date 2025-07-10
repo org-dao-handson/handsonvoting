@@ -78,7 +78,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
           allIds.map(async (id) => { try { return await api.getProcess(id); } catch { return null; } })
         );
         const filtered = (allDetails as any[]).filter(
-          (p) => p && p.organizationId.toLowerCase() === orgId.toLowerCase()
+          (p) => p && p.organizationId.toLowerCase() === orgId!.toLowerCase()
         );
         if (!filtered.length) throw new Error(`No processes found for org ${orgId}`);
         filtered.sort((a, b) => {
