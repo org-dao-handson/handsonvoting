@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
+          node-version: '24.x'  # Updated to match package.json requirements
 
       - name: Clean yarn cache
         run: yarn cache clean
