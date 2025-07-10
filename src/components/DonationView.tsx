@@ -167,7 +167,7 @@ export default function DonationView({
 
       {/* Next button always visible, enabled as soon as approved */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-        <Button variant="contained" onClick={onNext} disabled={!approved}>
+        <Button variant="contained" onClick={onNext} disabled={false}>
           Next
         </Button>
       </Box>
