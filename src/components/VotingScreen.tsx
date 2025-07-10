@@ -71,7 +71,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   useEffect(() => {
     async function init() {
       try {
-        const api = new VocdoniApiService(apiUrl);
+        const api = new VocdoniApiService(apiUrl!); // Added non-null assertion operator
         // 1. discover latest process
         const allIds = await api.listProcesses();
         const allDetails = await Promise.all(
@@ -140,7 +140,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   // poll vote status after submission
   useEffect(() => {
     if (!voteSubmitted || !voteId || !details) return;
-    const api = new VocdoniApiService(apiUrl);
+    const api = new VocdoniApiService(apiUrl!); // Added non-null assertion operator
     const interval = setInterval(async () => {
       try {
         const { status } = await api.getVoteStatus(details.processId.replace(/^0x/, ''), voteId);
@@ -165,7 +165,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
     setActiveStep(0);
 
     try {
-      const api = new VocdoniApiService(apiUrl);
+      const api = new VocdoniApiService(apiUrl!); // Added non-null assertion operator
       const proc = await api.getProcess(details.processId);
 
       // 1. use existing proof
