@@ -74,7 +74,7 @@ export default function DonationView({
       errorStr.includes('ACTION_REJECTED') ||
       errorStr.includes('code=4001')
     ) {
-      return 'Transaction was rejected. Please try again.';
+      return 'Transaction was rejected in the wallet. Please try again.';
     }
 
     // Check for specific contract error messages
