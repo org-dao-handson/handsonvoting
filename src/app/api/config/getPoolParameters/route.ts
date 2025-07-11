@@ -4,12 +4,12 @@ import redis from '../../../../../lib/redis';
 
 export async function GET() {
   try {
-    const poolAName = await redis.get('POOL_A_NAME');
-    const poolAAddress = await redis.get('POOL_A_ADDRESS');
+    const poolName = await redis.get('POOL_NAME');
+    const poolAddress = await redis.get('POOL_ADDRESS');
 
     return NextResponse.json({
-      poolAName,
-      poolAAddress,
+      poolName,
+      poolAddress,
     });
   } catch (error) {
     console.error('Failed to fetch pool parameters:', error);

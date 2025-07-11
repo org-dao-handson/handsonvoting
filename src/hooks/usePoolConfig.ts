@@ -2,14 +2,14 @@
 import { useState, useEffect } from 'react';
 
 interface PoolConfig {
-  poolAName: string;
-  poolAAddress: string;
+  poolName: string;
+  poolAddress: string;
 }
 
 export function usePoolConfig() {
   const [config, setConfig] = useState<PoolConfig>({
-    poolAName: process.env.NEXT_PUBLIC_POOL_A_NAME || 'Pool A',
-    poolAAddress: process.env.NEXT_PUBLIC_POOL_A_ADDRESS || '',
+    poolName: process.env.NEXT_PUBLIC_POOL_NAME || process.env.NEXT_PUBLIC_POOL_A_NAME || 'Pool',
+    poolAddress: process.env.NEXT_PUBLIC_POOL_ADDRESS || process.env.NEXT_PUBLIC_POOL_A_ADDRESS || '',
   });
   const [loading, setLoading] = useState(true);
 
@@ -36,8 +36,8 @@ export function usePoolConfig() {
         if (res.ok) {
           const data = await res.json();
           setConfig({
-            poolAName: data.poolAName || config.poolAName,
-            poolAAddress: data.poolAAddress || config.poolAAddress,
+            poolName: data.poolName || config.poolName,
+            poolAddress: data.poolAddress || config.poolAddress,
           });
         }
       } catch (error) {

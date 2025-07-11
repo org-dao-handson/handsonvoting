@@ -47,7 +47,7 @@ export default function Home() {
   const handleNext = () => setCurrentStep((s) => s + 1);
   const handleBack = () => setCurrentStep((s) => s - 1);
 
-  // Now: Welcome, Connect, Donate A, Vote A, Show Results
+  // Now: Welcome, Connect, Donate, Vote, Show Results
   const steps = [
     'Welcome',
     'Connect Wallet',
@@ -68,13 +68,13 @@ export default function Home() {
   // Create POOLS array from the fetched configuration
   const POOLS = [
     {
-      name: config.poolAName,
-      address: config.poolAAddress,
+      name: config.poolName,
+      address: config.poolAddress,
     }
   ];
 
   // Validate pool configuration
-  if (!config.poolAName || !config.poolAAddress) {
+  if (!config.poolName || !config.poolAddress) {
     return (
       <Box padding={3}>
         <h1>Configuration Error</h1>

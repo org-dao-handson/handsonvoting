@@ -6,22 +6,22 @@ export async function POST(request: NextRequest) {
   try {
     // Parse the request body
     const body = await request.json();
-    const { poolAName, poolAAddress } = body;
+    const { poolName, poolAddress } = body;
 
     // Update values in Redis if provided
-    if (poolAName !== undefined) {
-      await redis.set('POOL_A_NAME', poolAName);
+    if (poolName !== undefined) {
+      await redis.set('POOL_NAME', poolName);
     }
 
-    if (poolAAddress !== undefined) {
-      await redis.set('POOL_A_ADDRESS', poolAAddress);
+    if (poolAddress !== undefined) {
+      await redis.set('POOL_ADDRESS', poolAddress);
     }
 
     // Return the updated values
     return NextResponse.json({
       success: true,
-      poolAName: await redis.get('POOL_A_NAME'),
-      poolAAddress: await redis.get('POOL_A_ADDRESS')
+      poolName: await redis.get('POOL_NAME'),
+      poolAddress: await redis.get('POOL_ADDRESS')
     });
   } catch (error) {
     console.error('Failed to update pool parameters:', error);
