@@ -10,11 +10,9 @@ import { ThemeProvider, createTheme, Box } from '@mui/material';
 import { Wallet, JsonRpcSigner } from 'ethers';
 import ShowResultsScreen from '@/components/ShowResultsScreen';
 
-// Client-only components
-const DonationView = dynamic(
-  () => import('@/components/DonationView'),
-  { ssr: false, loading: () => <div>Loading donation view…</div> }
-);
+// src/app/page.tsx
+import DonationView from '../components/DonationView'
+
 const VotingScreen = dynamic(
   () => import('@/components/VotingScreen'),
   { ssr: false, loading: () => <div>Loading voting screen…</div> }
