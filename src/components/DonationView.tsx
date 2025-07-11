@@ -40,12 +40,14 @@ export default function DonationView({
       try {
         const res = await fetch(flagUrl);
         if (res.ok) {
-          const { openA } = await res.json();
-          setApproved(openA);
-          // No early return so we keep polling even after approval
+          const { approved: isApproved } = await res.json();
+          if (isApproved) {
+            setApproved(true);
+            return; // stop polling once approved
+          }
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        console.error('Error polling flag:', error);
       }
       setTimeout(pollApproval, 3000);
     };
