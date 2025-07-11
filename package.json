@@ -21,6 +21,7 @@
     "@mui/x-date-pickers": "^8.5.2",
     "@vocdoni/davinci-sdk": "file:./vocdoni-davinci-sdk-v0.0.2.tgz",
     "date-fns": "^4.1.0",
+    "ioredis": "^5.6.1",
     "next": "^15.3.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/ioredis": "^5.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
