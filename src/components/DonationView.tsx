@@ -13,9 +13,9 @@ import {
 import { BrowserProvider, parseEther } from 'ethers';
 
 type DonationViewProps = {
-  poolAddress: string;
-  poolName: string;
-  onNext: () => void;
+  readonly poolAddress: string;
+  readonly poolName: string;
+  readonly onNext: () => void;
 };
 
 export default function DonationView({
@@ -40,11 +40,9 @@ export default function DonationView({
       try {
         const res = await fetch(flagUrl);
         if (res.ok) {
-          const { approved: isApproved } = await res.json();
-          if (isApproved) {
-            setApproved(true);
-            return; // stop polling once approved
-          }
+          const { openA } = await res.json();
+          setApproved(openA);
+          // No early return so we keep polling even after approval
         }
       } catch {
         // ignore
@@ -110,7 +108,7 @@ export default function DonationView({
       await tx.wait();
     } catch (e: any) {
       console.error('Donation error:', e);
-      setError(e?.message || 'Transaction failed');
+      setError(e?.message ?? 'Transaction failed');
     } finally {
       setLoading(false);
     }
