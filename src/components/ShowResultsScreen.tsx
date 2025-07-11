@@ -172,8 +172,7 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
         </CardContent>
       </Card>
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-        <Button variant="outlined" onClick={onBack}>Back</Button>
-        <Button variant="contained" onClick={onNext}>Finish</Button>
+        
       </Box>
     </Box>
   );
