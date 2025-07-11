@@ -12,6 +12,8 @@
 yarn.lock
 davinci-sdk.tgz
 
+.env
+
 # testing
 /coverage
 
