@@ -63,12 +63,37 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [canProceedToResults, setCanProceedToResults] = useState<boolean>(false);
 
   const [proofObj, setProofObj] = useState<any>(null);
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [voteId, setVoteId] = useState<string | null>(null);
   const [voteStatus, setVoteStatus] = useState<string | null>(null);
   const [myWeight, setMyWeight] = useState<string | null>(null);
+
+  const proceedToResultsUrl = `${window.location.origin}/api/admin/proceedToResults`;
+
+  // Poll for proceed to results permission
+  useEffect(() => {
+    let cancelled = false;
+    const pollProceedStatus = async () => {
+      if (cancelled) return;
+      try {
+        const res = await fetch(proceedToResultsUrl);
+        if (res.ok) {
+          const data = await res.json();
+          setCanProceedToResults(data.canProceed === true);
+        }
+      } catch (error) {
+        console.error('Error polling proceedToResults:', error);
+      }
+      setTimeout(pollProceedStatus, 3000);
+    };
+    pollProceedStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [proceedToResultsUrl]);
 
   useEffect(() => {
     async function init() {
@@ -234,7 +259,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
         <Alert severity="info">{closedError || 'This voting process is closed.'}</Alert>
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
           <Button variant="outlined" onClick={onBack}>Back</Button>
-          <Button variant="contained" onClick={onNext}>Next</Button>
+          <Button variant="contained" onClick={onNext} disabled={!canProceedToResults}>Next</Button>
         </Box>
       </Box>
     );
