@@ -27,33 +27,31 @@ export default function DonationView({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
-  const [approved, setApproved] = useState<boolean>(false);
+  const [canProceed, setCanProceed] = useState<boolean>(false);
 
-  const voteOpenUrl = `${window.location.origin}/api/admin/voteOpen`;
+  const proceedToVotingUrl = `${window.location.origin}/api/admin/proceedToVoting`;
 
-  // Poll for admin approval
+  // Poll for proceed to voting permission
   useEffect(() => {
     let cancelled = false;
-    const pollApproval = async () => {
+    const pollProceedStatus = async () => {
       if (cancelled) return;
       try {
-        const res = await fetch(voteOpenUrl);
+        const res = await fetch(proceedToVotingUrl);
         if (res.ok) {
           const data = await res.json();
-          // Check for voteOpen property in the response
-          const isApproved = data.voteOpen !== undefined ? data.voteOpen : false;
-          setApproved(isApproved);
+          setCanProceed(data.canProceed === true);
         }
       } catch (error) {
-        console.error('Error polling voteOpen:', error);
+        console.error('Error polling proceedToVoting:', error);
       }
-      setTimeout(pollApproval, 3000);
+      setTimeout(pollProceedStatus, 3000);
     };
-    pollApproval();
+    pollProceedStatus();
     return () => {
       cancelled = true;
     };
-  }, [voteOpenUrl]);
+  }, [proceedToVotingUrl]);
 
   const handleDonate = async () => {
     setError(null);
@@ -141,7 +139,7 @@ export default function DonationView({
 
       {/* Next button always visible, enabled as soon as approved */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-        <Button variant="contained" onClick={onNext} disabled={!approved}>
+        <Button variant="contained" onClick={onNext} disabled={!canProceed}>
           Next
         </Button>
       </Box>
