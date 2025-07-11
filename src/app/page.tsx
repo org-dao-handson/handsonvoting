@@ -8,10 +8,9 @@ import ConnectWalletScreen from '@/components/ConnectWalletScreen';
 import StepIndicator from '@/components/StepIndicator';
 import { ThemeProvider, createTheme, Box } from '@mui/material';
 import { Wallet, JsonRpcSigner } from 'ethers';
-import CensusCreationScreen from '@/components/CensusCreationScreen';
-import CreateElectionScreen from '@/components/CreateElectionScreen';
-import CheckElectionScreen from '@/components/CheckElectionScreen';
+import ShowResultsScreen from '@/components/ShowResultsScreen';
 
+// Client-only components
 const DonationView = dynamic(
   () => import('@/components/DonationView'),
   { ssr: false, loading: () => <div>Loading donation view…</div> }
@@ -20,9 +19,6 @@ const VotingScreen = dynamic(
   () => import('@/components/VotingScreen'),
   { ssr: false, loading: () => <div>Loading voting screen…</div> }
 );
-
-import EndProcessScreen from '@/components/EndProcessScreen';
-import ShowResultsScreen from '@/components/ShowResultsScreen';
 
 const theme = createTheme({
   palette: {
@@ -40,62 +36,47 @@ const theme = createTheme({
   },
 });
 
-// Gather pool settings from environment
+// Only Pool A
 const POOLS = [
   {
     name: process.env.NEXT_PUBLIC_POOL_A_NAME!,
     address: process.env.NEXT_PUBLIC_POOL_A_ADDRESS!,
-  },
-  {
-    name: process.env.NEXT_PUBLIC_POOL_B_NAME!,
-    address: process.env.NEXT_PUBLIC_POOL_B_ADDRESS!,
-  },
-  {
-    name: process.env.NEXT_PUBLIC_POOL_C_NAME!,
-    address: process.env.NEXT_PUBLIC_POOL_C_ADDRESS!,
-  },
-  {
-    name: process.env.NEXT_PUBLIC_POOL_D_NAME!,
-    address: process.env.NEXT_PUBLIC_POOL_D_ADDRESS!,
-  },
+  }
 ];
 
-// Validate environment variables
 POOLS.forEach(({ name, address }, idx) => {
   if (!name) {
-    throw new Error(`Missing NEXT_PUBLIC_POOL_${String.fromCharCode(65 + idx)}_NAME environment variable`);
+    throw new Error(`Missing NEXT_PUBLIC_POOL_${String.fromCharCode(65 + idx)}_NAME`);
   }
   if (!address) {
-    throw new Error(`Missing NEXT_PUBLIC_POOL_${String.fromCharCode(65 + idx)}_ADDRESS environment variable`);
+    throw new Error(`Missing NEXT_PUBLIC_POOL_${String.fromCharCode(65 + idx)}_ADDRESS`);
   }
 });
 
 export default function Home() {
-  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [currentStep, setCurrentStep] = useState(0);
   const [wallet, setWallet] = useState<Wallet | JsonRpcSigner | null>(null);
 
   const handleWalletConnected = useCallback(
     (w: Wallet | JsonRpcSigner) => setWallet(w),
     []
   );
-  const handleNext = () => setCurrentStep((prev) => prev + 1);
-  const handleBack = () => setCurrentStep((prev) => prev - 1);
+  const handleNext = () => setCurrentStep((s) => s + 1);
+  const handleBack = () => setCurrentStep((s) => s - 1);
 
-  // Build step labels
-  const steps: string[] = [
+  // Now: Welcome, Connect, Donate A, Vote A, Show Results
+  const steps = [
     'Welcome',
     'Connect Wallet',
-    ...POOLS.flatMap(pool => [`Donate to ${pool.name}`, `Vote - ${pool.name}`]),
-    'End Process',
+    `Donate to Pool`,
+    `Vote on distribution`,
     'Show Results',
   ];
 
   const renderStep = () => {
-    // Welcome
     if (currentStep === 0) {
       return <WelcomeScreen onNext={handleNext} />;
     }
-    // Connect Wallet
     if (currentStep === 1) {
       return (
         <ConnectWalletScreen
@@ -106,49 +87,33 @@ export default function Home() {
       );
     }
 
-    // Pool steps
-    const poolStepsStart = 2;
-    const poolStepCount = POOLS.length * 2;
-    if (currentStep >= poolStepsStart && currentStep < poolStepsStart + poolStepCount) {
-      const idx = Math.floor((currentStep - poolStepsStart) / 2);
-      const isDonation = (currentStep - poolStepsStart) % 2 === 0;
-      const pool = POOLS[idx];
+    // Pool steps start at index 2, count = donation + 1 vote = 2
+    const poolStart = 2;
+    const poolCount = POOLS.length + 1; // 1 donation + 1 vote
 
-      if (isDonation) {
+    if (currentStep >= poolStart && currentStep < poolStart + poolCount) {
+      const offset = currentStep - poolStart;
+
+      if (offset === 0) {
+        // DonationView for Pool A
+        const p = POOLS[0];
         return (
           <DonationView
-            poolAddress={pool.address}
-            poolName={pool.name}
-            onNext={handleNext}
-            //onBack={handleBack}
-          />
-        );
-      } else {
-        return (
-          <VotingScreen
+            poolAddress={p.address}
+            poolName={p.name}
             onNext={handleNext}
             onBack={handleBack}
           />
         );
       }
+
+      // offset === 1 → VotingScreen
+      return <VotingScreen onNext={handleNext} onBack={handleBack} />;
     }
 
-    // End Process
-    const endStepIndex = poolStepsStart + poolStepCount;
-    if (currentStep === endStepIndex) {
-      return wallet ? (
-        <EndProcessScreen
-          onNext={handleNext}
-          onBack={handleBack}
-          wallet={wallet}
-        />
-      ) : (
-        <WelcomeScreen onNext={handleNext} />
-      );
-    }
-
-    // Show Results
-    if (currentStep === endStepIndex + 1) {
+    // Show Results now immediately follows
+    const resultsIndex = poolStart + poolCount;
+    if (currentStep === resultsIndex) {
       return wallet ? (
         <ShowResultsScreen
           onNext={() => setCurrentStep(0)}
@@ -160,7 +125,6 @@ export default function Home() {
       );
     }
 
-    // Fallback
     return <WelcomeScreen onNext={handleNext} />;
   };
 
