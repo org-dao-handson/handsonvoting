@@ -88,14 +88,14 @@ export default function DonationView({
       setError('Please enter a valid ETH amount');
       return;
     }
-    if (!(window as any).ethereum) {
+    if (!window.ethereum) {
       setError('MetaMask not found');
       return;
     }
 
     try {
       setLoading(true);
-      const provider = new BrowserProvider((window as any).ethereum);
+      const provider = new BrowserProvider(window.ethereum);
       await provider.send('eth_requestAccounts', []);
       const signer = await provider.getSigner();
 
@@ -106,9 +106,11 @@ export default function DonationView({
       setSuccessTxHash(tx.hash);
 
       await tx.wait();
-    } catch (e: any) {
-      console.error('Donation error:', e);
-      setError(e?.message ?? 'Transaction failed');
+    } catch (error: unknown) {
+      console.error('Donation error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Transaction failed';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
