@@ -6,9 +6,10 @@ import Layout from '@/components/layout/Layout';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ConnectWalletScreen from '@/components/ConnectWalletScreen';
 import StepIndicator from '@/components/StepIndicator';
-import { ThemeProvider, createTheme, Box } from '@mui/material';
+import { ThemeProvider, createTheme, Box, CircularProgress } from '@mui/material';
 import { Wallet, JsonRpcSigner } from 'ethers';
 import ShowResultsScreen from '@/components/ShowResultsScreen';
+import { usePoolConfig } from '@/hooks/usePoolConfig';
 
 // src/app/page.tsx
 import DonationView from '../components/DonationView'
@@ -34,26 +35,10 @@ const theme = createTheme({
   },
 });
 
-// Only Pool A
-const POOLS = [
-  {
-    name: process.env.NEXT_PUBLIC_POOL_A_NAME!,
-    address: process.env.NEXT_PUBLIC_POOL_A_ADDRESS!,
-  }
-];
-
-POOLS.forEach(({ name, address }, idx) => {
-  if (!name) {
-    throw new Error(`Missing NEXT_PUBLIC_POOL_${String.fromCharCode(65 + idx)}_NAME`);
-  }
-  if (!address) {
-    throw new Error(`Missing NEXT_PUBLIC_POOL_${String.fromCharCode(65 + idx)}_ADDRESS`);
-  }
-});
-
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(0);
   const [wallet, setWallet] = useState<Wallet | JsonRpcSigner | null>(null);
+  const { config, loading } = usePoolConfig();
 
   const handleWalletConnected = useCallback(
     (w: Wallet | JsonRpcSigner) => setWallet(w),
@@ -70,6 +55,33 @@ export default function Home() {
     `Vote on distribution`,
     'Show Results',
   ];
+
+  // Show loading indicator while fetching pool configuration
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Create POOLS array from the fetched configuration
+  const POOLS = [
+    {
+      name: config.poolAName,
+      address: config.poolAAddress,
+    }
+  ];
+
+  // Validate pool configuration
+  if (!config.poolAName || !config.poolAAddress) {
+    return (
+      <Box padding={3}>
+        <h1>Configuration Error</h1>
+        <p>Missing pool configuration. Please check your settings.</p>
+      </Box>
+    );
+  }
 
   const renderStep = () => {
     if (currentStep === 0) {
