@@ -1,8 +1,16 @@
 // src/app/api/config/updatePoolParameters/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import redis from '../../../../../lib/redis';
+import { validateApiKey } from '../../../../utils/authHelpers';
 
 export async function POST(request: NextRequest) {
+  // Check for API key using the helper that skips validation in development
+  const apiKey = request.headers.get('x-api-key');
+
+  if (!validateApiKey(apiKey)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     // Parse the request body
     const body = await request.json();
