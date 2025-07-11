@@ -79,10 +79,24 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
     const pollProceedStatus = async () => {
       if (cancelled) return;
       try {
-        const res = await fetch(proceedToResultsUrl);
+        // Add cache-busting parameter and credentials to ensure fresh responses
+        const timestamp = new Date().getTime();
+        const res = await fetch(`${proceedToResultsUrl}?_=${timestamp}`, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          credentials: 'same-origin'
+        });
+
         if (res.ok) {
           const data = await res.json();
+          console.log('ProceedToResults status:', data);
           setCanProceedToResults(data.canProceed === true);
+        } else {
+          console.warn('Error response from proceedToResults:', res.status);
         }
       } catch (error) {
         console.error('Error polling proceedToResults:', error);

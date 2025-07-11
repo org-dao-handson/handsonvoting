@@ -47,10 +47,24 @@ export default function DonationView({
     const pollProceedStatus = async () => {
       if (cancelled) return;
       try {
-        const res = await fetch(proceedToVotingUrl);
+        // Add cache-busting parameter and credentials to ensure fresh responses
+        const timestamp = new Date().getTime();
+        const res = await fetch(`${proceedToVotingUrl}?_=${timestamp}`, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+          credentials: 'same-origin',
+        });
+
         if (res.ok) {
           const data = await res.json();
+          console.log('ProceedToVoting status:', data);
           setCanProceed(data.canProceed === true);
+        } else {
+          console.warn('Error response from proceedToVoting:', res.status);
         }
       } catch (error) {
         console.error('Error polling proceedToVoting:', error);
