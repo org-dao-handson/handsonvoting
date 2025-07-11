@@ -102,7 +102,6 @@ export default function Home() {
             poolAddress={p.address}
             poolName={p.name}
             onNext={handleNext}
-            onBack={handleBack}
           />
         );
       }
