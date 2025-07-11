@@ -32,6 +32,7 @@ interface ElectionDetails {
   censusRoot: string;
   metadataUrl: string;
   censusId: string;
+  state: string;
 }
 
 interface Question extends IQuestion {
@@ -53,6 +54,8 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   if (!apiUrl || !orgId) throw new Error('API_URL and ORGANIZATION_ID are required');
 
   const [details, setDetails] = useState<ElectionDetails | null>(null);
+  const [isClosed, setIsClosed] = useState(false);
+  const [closedError, setClosedError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [activeStep, setActiveStep] = useState(0);
@@ -65,51 +68,43 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [voteId, setVoteId] = useState<string | null>(null);
   const [voteStatus, setVoteStatus] = useState<string | null>(null);
-
   const [myWeight, setMyWeight] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
       try {
-        if (!apiUrl) {
-          throw new Error("apiUrl is required!");
-        }
-        const api = new VocdoniApiService(apiUrl);
-        // 1. discover latest process
+        const api = new VocdoniApiService(apiUrl!);
         const allIds = await api.listProcesses();
         const allDetails = await Promise.all(
-          allIds.map(async (id) => { try { return await api.getProcess(id); } catch { return null; } })
+          allIds.map(async (id) => { try { return await api.getProcess(id); } catch { return null; } }),
         );
-        if(!orgId) {
-            throw new Error("orgId is required!");
-          }
         const filtered = (allDetails as any[]).filter(
-          
-          
-          (p) => p && p.organizationId.toLowerCase() === orgId.toLowerCase()
+          (p) => p && p.organizationId.toLowerCase() === orgId!.toLowerCase(),
         );
         if (!filtered.length) throw new Error(`No processes found for org ${orgId}`);
         filtered.sort((a, b) => {
           try { return BigInt(a.id) > BigInt(b.id) ? -1 : 1; } catch { return b.id.localeCompare(a.id); }
         });
         const latest = filtered[0];
-        const cfg: ElectionDetails = {
+        const closed = ['closed', 'ended', 'results'].includes(latest.state);
+
+        setDetails({
           processId: latest.id,
           encryptionPubKey: [latest.encryptionKey.x, latest.encryptionKey.y],
           censusRoot: latest.census.censusRoot,
           metadataUrl: latest.metadataURI,
           censusId: latest.censusId,
-        };
-        setDetails(cfg);
+          state: latest.state,
+        });
+        setIsClosed(closed);
 
-        // 2. wallet connection & eligibility & proof
-        if ((window as any).ethereum) {
+        if ((window as any).ethereum && !closed) {
           const provider = new BrowserProvider((window as any).ethereum);
           const signer = await provider.getSigner();
           const acct = await signer.getAddress();
           setAddress(acct);
           try {
-            const proof = await api.getCensusProof(cfg.censusRoot, acct);
+            const proof = await api.getCensusProof(latest.census.censusRoot, acct);
             setProofObj(proof);
             const weightHex = proof.weight;
             const weightNum = BigInt(weightHex.startsWith('0x') ? weightHex.slice(2) : weightHex);
@@ -121,15 +116,14 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
           }
         }
 
-        // 3. fetch metadata & questions
-        if (!cfg.metadataUrl) throw new Error('Metadata URL undefined');
-        const hash = cfg.metadataUrl.split('/').pop()!;
+        if (!latest.metadataURI) throw new Error('Metadata URL undefined');
+        const hash = latest.metadataURI.split('/').pop()!;
         const meta = await api.getMetadata(hash);
-        const qs: Question[] = meta.questions.map(q => ({
+        const qs: Question[] = meta.questions.map((q) => ({
           ...q,
           title: q.title || { default: '' },
           description: q.description || { default: '' },
-          choices: q.choices.map(c => ({ title: c.title || { default: '' }, value: c.value })),
+          choices: q.choices.map((c) => ({ title: c.title || { default: '' }, value: c.value })),
         }));
         setQuestions(qs);
         const initAns: Record<number, number> = {};
@@ -145,21 +139,16 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
     init();
   }, [apiUrl, orgId]);
 
-  // poll vote status after submission
   useEffect(() => {
     if (!voteSubmitted || !voteId || !details) return;
-    if (!apiUrl) {
-      throw new Error("apiUrl is required!");
-    }
-    const api = new VocdoniApiService(apiUrl);
-    
+    const api = new VocdoniApiService(apiUrl!);
     const interval = setInterval(async () => {
       try {
         const { status } = await api.getVoteStatus(details.processId.replace(/^0x/, ''), voteId);
         setVoteStatus(status);
-        if (status === 'settled' || status === 'error') clearInterval(interval);
+        if (['settled', 'error'].includes(status)) clearInterval(interval);
       } catch (err) {
-        console.error('Status polling failed', err);
+        console.error(err);
       }
     }, 10000);
     return () => clearInterval(interval);
@@ -167,7 +156,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
 
   const castVote = async () => {
     if (!details || !eligible) return;
-    if (Object.values(answers).some(v => v < 0)) {
+    if (Object.values(answers).some((v) => v < 0)) {
       setError('Please answer all questions');
       return;
     }
@@ -175,60 +164,37 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
     setError(null);
     setLoading(true);
     setActiveStep(0);
-
     try {
-      const api = new VocdoniApiService(apiUrl);
+      const api = new VocdoniApiService(apiUrl!);
       const proc = await api.getProcess(details.processId);
-
-      // 1. use existing proof
       setActiveStep(1);
-      const myWeight = BigInt(
-        proofObj.weight.startsWith('0x') ? proofObj.weight.slice(2) : proofObj.weight
-      ).toString();
-
-      // 2. nonce
-      const kHex = Array.from(crypto.getRandomValues(new Uint8Array(8)))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
+      const myW = BigInt(proofObj.weight.startsWith('0x') ? proofObj.weight.slice(2) : proofObj.weight).toString();
+      const kHex = Array.from(crypto.getRandomValues(new Uint8Array(8))).map((b) => b.toString(16).padStart(2, '0')).join('');
       const kStr = BigInt('0x' + kHex).toString();
-
-      // 3. init BallotProof
       const info: InfoResponse = await api.getInfo();
       const sdk = new BallotProof({ wasmExecUrl: info.ballotProofWasmHelperExecJsUrl, wasmUrl: info.ballotProofWasmHelperUrl });
-      await sdk.init();
-      setActiveStep(2);
-
-      // 4. build field values
-      const flat = questions.flatMap((q, i) => {
-        const arr = Array(q.choices.length).fill('0');
-        arr[answers[i]] = myWeight;
-        return arr;
-      });
+      await sdk.init(); setActiveStep(2);
+      const flat = questions.flatMap((q, i) => { const arr = Array(q.choices.length).fill('0'); arr[answers[i]] = myW; return arr; });
       const fieldValues = flat.concat(Array(8 - flat.length).fill('0')).slice(0, 8);
-
       const inputs: BallotProofInputs = {
         address: address.replace(/^0x/, ''),
         processID: proc.id,
         encryptionKey: [proc.encryptionKey.x, proc.encryptionKey.y],
         k: kStr,
         ballotMode: proc.ballotMode,
-        weight: myWeight,
+        weight: myW,
         fieldValues,
       };
       setActiveStep(3);
-
-      // 5. generate & verify proof
       const { circomInputs, ballot, ballotInputsHash, voteId: outVoteId } = await sdk.proofInputs(inputs);
       const circom = new CircomProof({ wasmUrl: info.circuitUrl, zkeyUrl: info.provingKeyUrl, vkeyUrl: info.verificationKeyUrl });
       const { proof, publicSignals } = await circom.generate(circomInputs);
       if (!(await circom.verify(proof, publicSignals))) throw new Error('Proof verification failed');
       setActiveStep(4);
-
-      // 6. sign & submit
       const provider = new BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
       const sigBytes = hexStringToUint8Array(outVoteId);
       const signature = await signer.signMessage(sigBytes);
-
       const voteReq: VoteRequest = {
         address,
         ballot: { curveType: ballot.curveType, ciphertexts: ballot.ciphertexts },
@@ -240,10 +206,14 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
         voteId: outVoteId,
       };
       await api.submitVote(voteReq);
-      setVoteId(outVoteId.replace(/^0x/, ''));  
-      setVoteSubmitted(true);
+      setVoteId(outVoteId.replace(/^0x/, '')); setVoteSubmitted(true);
     } catch (e: any) {
-      setError(e.message);
+      if (e.message?.includes('process is not accepting votes')) {
+        setClosedError(e.message);
+        setIsClosed(true);
+      } else {
+        setError(e.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -251,11 +221,24 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
 
   function hexStringToUint8Array(hex: string): Uint8Array {
     const clean = hex.replace(/^0x/, '');
-    return new Uint8Array(clean.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+    return new Uint8Array(clean.match(/.{1,2}/g)!.map((b) => parseInt(b, 16)));
   }
 
   if (loading) return <Box textAlign="center"><CircularProgress/></Box>;
   if (error) return <Alert severity="error" sx={{ mx: 2 }}>{error}</Alert>;
+
+  if (details && isClosed) {
+    return (
+      <Box sx={{ maxWidth: 600, mx: 'auto', my: 4 }}>
+        <Typography variant="h4" gutterBottom>Voting Closed</Typography>
+        <Alert severity="info">{closedError || 'This voting process is closed.'}</Alert>
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+          <Button variant="outlined" onClick={onBack}>Back</Button>
+          <Button variant="contained" onClick={onNext}>Next</Button>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto', my: 4 }}>
@@ -269,12 +252,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
         <>
           <Alert severity="success">Vote submitted!</Alert>
           {voteStatus && (
-            <Alert
-              severity={
-                voteStatus === 'settled' ? 'success' : voteStatus === 'error' ? 'error' : 'info'
-              }
-              sx={{ mt: 2 }}
-            >
+            <Alert severity={voteStatus === 'settled' ? 'success' : voteStatus === 'error' ? 'error' : 'info'} sx={{ mt: 2 }}>
               Vote status: {voteStatus}
             </Alert>
           )}
@@ -304,7 +282,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
                   <FormControlLabel
                     key={ci}
                     value={ci}
-                    control={<Radio />} 
+                    control={<Radio />}
                     label={c.title.default}
                   />
                 ))}
@@ -329,7 +307,9 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
 
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
             <Button variant="outlined" onClick={onBack}>Back</Button>
-            <Button variant="contained" onClick={onNext} disabled={!voteSubmitted}>Next</Button>
+            <Button variant="contained" onClick={onNext} disabled={!voteSubmitted}>
+              Next
+            </Button>
           </Box>
         </>
       )}
