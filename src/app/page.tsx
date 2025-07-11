@@ -21,7 +21,7 @@ const VotingScreen = dynamic(
 
 const theme = createTheme({
   palette: {
-    primary: { main: '#2B6CB0' },
+    primary: { main: '#0028A5' },
     secondary: { main: '#4A5568' },
     background: { default: '#F7FAFC' },
   },
