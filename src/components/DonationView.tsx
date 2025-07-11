@@ -1,7 +1,7 @@
 // File: components/DonationView.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -18,6 +18,9 @@ type DonationViewProps = {
   readonly onNext: () => void;
 };
 
+// Minimum donation amount in ETH
+const MIN_DONATION_AMOUNT = 0.11;
+
 export default function DonationView({
   poolAddress,
   poolName,
@@ -28,6 +31,12 @@ export default function DonationView({
   const [error, setError] = useState<string | null>(null);
   const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
   const [canProceed, setCanProceed] = useState<boolean>(false);
+
+  // Check if the amount is valid (> 0.1 ETH)
+  const isAmountValid = useMemo(() => {
+    if (!amount || isNaN(Number(amount))) return false;
+    return Number(amount) >= MIN_DONATION_AMOUNT;
+  }, [amount]);
 
   const proceedToVotingUrl = `${window.location.origin}/api/admin/proceedToVoting`;
 
@@ -61,6 +70,12 @@ export default function DonationView({
       setError('Please enter a valid ETH amount');
       return;
     }
+
+    if (Number(amount) < MIN_DONATION_AMOUNT) {
+      setError(`You must send at least ${MIN_DONATION_AMOUNT} ETH`);
+      return;
+    }
+
     if (!window.ethereum) {
       setError('MetaMask not found');
       return;
@@ -114,12 +129,14 @@ export default function DonationView({
             fullWidth
             disabled={loading}
             sx={{ mb: 2 }}
+            helperText={amount && !isAmountValid ? `Minimum donation is ${MIN_DONATION_AMOUNT} ETH` : ''}
+            error={amount !== '' && !isAmountValid}
           />
           <Button
             variant="contained"
             fullWidth
             onClick={handleDonate}
-            disabled={loading || !amount}
+            disabled={loading || !amount || !isAmountValid}
             startIcon={loading ? <CircularProgress size={20} /> : undefined}
           >
             {loading ? 'Sending…' : 'Donate'}
