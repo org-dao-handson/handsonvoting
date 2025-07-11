@@ -1,8 +1,16 @@
 // src/app/api/config/initialize/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import redis from '../../../../../lib/redis';
+import { validateApiKey } from '../../../../utils/authHelpers';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  // Check for API key using the helper that skips validation in development
+  const apiKey = req.headers.get('x-api-key');
+
+  if (!validateApiKey(apiKey)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     // Check if pool parameters already exist
     const poolName = await redis.get('POOL_NAME');
@@ -19,12 +27,14 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: 'Configuration initialized'
+      message: 'Configuration initialized',
+      poolName: await redis.get('POOL_NAME'),
+      poolAddress: await redis.get('POOL_ADDRESS')
     });
   } catch (error) {
-    console.error('Failed to initialize configuration:', error);
+    console.error('Error in initialize POST:', error);
     return NextResponse.json(
-      { message: 'Failed to initialize configuration' },
+      { error: 'Failed to initialize configuration' },
       { status: 500 }
     );
   }

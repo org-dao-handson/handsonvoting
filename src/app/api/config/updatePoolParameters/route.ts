@@ -16,6 +16,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { poolName, poolAddress } = body;
 
+    // Validate input
+    if (poolName === undefined && poolAddress === undefined) {
+      return NextResponse.json(
+        { error: 'At least one parameter (poolName or poolAddress) must be provided' },
+        { status: 400 }
+      );
+    }
+
     // Update values in Redis if provided
     if (poolName !== undefined) {
       await redis.set('POOL_NAME', poolName);
@@ -28,13 +36,14 @@ export async function POST(request: NextRequest) {
     // Return the updated values
     return NextResponse.json({
       success: true,
+      message: 'Pool parameters updated successfully',
       poolName: await redis.get('POOL_NAME'),
       poolAddress: await redis.get('POOL_ADDRESS')
     });
   } catch (error) {
-    console.error('Failed to update pool parameters:', error);
+    console.error('Error in updatePoolParameters POST:', error);
     return NextResponse.json(
-      { message: 'Failed to update pool parameters' },
+      { error: 'Failed to update pool parameters' },
       { status: 500 }
     );
   }
