@@ -1,8 +1,18 @@
-// lib/redis.ts
 import Redis from 'ioredis';
 
-// Connect to Redis using environment variable or default to localhost for dev
-const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+// Determine connection options based on environment
+const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
+
+// Configure Redis client with options for handling SSL certificates
+const redisOptions = {
+  // Disable certificate validation for Heroku Redis SSL connections
+  tls: redisUrl.includes('rediss://') || redisUrl.includes('ssl=true') ? {
+    rejectUnauthorized: false
+  } : undefined
+};
+
+// Connect to Redis with proper options
+const redis = new Redis(redisUrl, redisOptions);
 
 // Add error handling
 redis.on('error', (err) => {
