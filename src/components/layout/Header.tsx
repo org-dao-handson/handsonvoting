@@ -5,7 +5,7 @@ export default function Header() {
     <AppBar position="static" color="primary" elevation={0}>
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          DAVINCI DEMO
+          Deep Dive into Blockchain 2025
         </Typography>
       </Toolbar>
     </AppBar>
