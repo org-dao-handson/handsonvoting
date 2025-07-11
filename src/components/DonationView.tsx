@@ -29,8 +29,7 @@ export default function DonationView({
   const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
   const [approved, setApproved] = useState<boolean>(false);
 
-  const flagUrl = `${window.location.origin}/api/admin/flag`;
-  const voteAopenUrl = `${window.location.origin}/api/admin/voteAopen`;
+  const voteOpenUrl = `${window.location.origin}/api/admin/voteOpen`;
 
   // Poll for admin approval
   useEffect(() => {
@@ -38,15 +37,15 @@ export default function DonationView({
     const pollApproval = async () => {
       if (cancelled) return;
       try {
-        const res = await fetch(flagUrl);
+        const res = await fetch(voteOpenUrl);
         if (res.ok) {
           const data = await res.json();
-          // Check for either approved or openA property in the response
-          const isApproved = data.approved !== undefined ? data.approved : data.openA;
+          // Check for voteOpen property in the response
+          const isApproved = data.voteOpen !== undefined ? data.voteOpen : false;
           setApproved(isApproved);
         }
       } catch (error) {
-        console.error('Error polling flag:', error);
+        console.error('Error polling voteOpen:', error);
       }
       setTimeout(pollApproval, 3000);
     };
@@ -54,32 +53,7 @@ export default function DonationView({
     return () => {
       cancelled = true;
     };
-  }, [flagUrl]);
-
-  // Poll for voteAopen flag to auto-skip
-  useEffect(() => {
-    let cancelled = false;
-    const pollVoteAopen = async () => {
-      if (cancelled) return;
-      try {
-        const res = await fetch(voteAopenUrl);
-        if (res.ok) {
-          const { voteAopen: isOpen } = await res.json();
-          if (!isOpen) {
-            onNext();
-            return; // skip to next immediately
-          }
-        }
-      } catch {
-        // ignore
-      }
-      setTimeout(pollVoteAopen, 3000);
-    };
-    pollVoteAopen();
-    return () => {
-      cancelled = true;
-    };
-  }, [voteAopenUrl, onNext]);
+  }, [voteOpenUrl]);
 
   const handleDonate = async () => {
     setError(null);
