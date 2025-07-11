@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
+import redis from '../../../lib/redis';
 
-let voteCopen = true;
-
-export function GET() {
+export async function GET() {
+  const voteCopen = await redis.get('voteCopen') === 'true';
   return NextResponse.json({ voteCopen });
 }
 
-export function POST() {
-  voteCopen = false;
-  return NextResponse.json({ voteCopen });
+export async function POST() {
+  const currentValue = await redis.get('voteCopen') === 'true';
+  const newValue = !currentValue;
+  await redis.set('voteCopen', String(newValue));
+  return NextResponse.json({ voteCopen: newValue });
 }
