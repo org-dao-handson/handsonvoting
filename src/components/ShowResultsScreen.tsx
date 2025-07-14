@@ -182,7 +182,7 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
           onClick={handleParticipateNext}
           size="large"
         >
-          Participate in the next voting
+          Participate in the next round
         </Button>
       </Box>
     </Box>
