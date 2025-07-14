@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Button,
@@ -48,10 +49,12 @@ const VOTE_STEPS = [
   'Submit Vote',
 ];
 
-export default function VotingScreen({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+export default function VotingScreen({ onBack }: { onBack: () => void }) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
   const orgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID || process.env.ORGANIZATION_ID;
   if (!apiUrl || !orgId) throw new Error('API_URL and ORGANIZATION_ID are required');
+
+  const router = useRouter();
 
   const [details, setDetails] = useState<ElectionDetails | null>(null);
   const [isClosed, setIsClosed] = useState(false);
@@ -273,7 +276,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
         <Alert severity="info">{closedError || 'This voting process is closed.'}</Alert>
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
           <Button variant="outlined" onClick={onBack}>Back</Button>
-          <Button variant="contained" onClick={onNext} disabled={!canProceedToResults}>Next</Button>
+          <Button variant="contained" onClick={() => router.push('/results')} disabled={!canProceedToResults}>Next</Button>
         </Box>
       </Box>
     );
@@ -297,7 +300,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
           )}
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
             <Button variant="outlined" onClick={onBack}>Back</Button>
-            <Button variant="contained" onClick={onNext} disabled={voteStatus !== 'settled'}>
+            <Button variant="contained" onClick={() => router.push('/results')} disabled={voteStatus !== 'settled' || !canProceedToResults}>
               Next
             </Button>
           </Box>
@@ -346,7 +349,7 @@ export default function VotingScreen({ onBack, onNext }: { onBack: () => void; o
 
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
             <Button variant="outlined" onClick={onBack}>Back</Button>
-            <Button variant="contained" onClick={onNext} disabled={!voteSubmitted}>
+            <Button variant="contained" onClick={() => router.push('/results')} disabled={!voteSubmitted || !canProceedToResults}>
               Next
             </Button>
           </Box>
