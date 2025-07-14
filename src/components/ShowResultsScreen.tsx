@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Button,
@@ -10,18 +11,14 @@ import {
   Divider,
   LinearProgress,
 } from '@mui/material';
-import {
-  VocdoniApiService,
-  type InfoResponse,
-} from '@vocdoni/davinci-sdk';
-import { ProcessRegistryService } from '@vocdoni/davinci-sdk';
+import { VocdoniApiService, ProcessRegistryService } from '@vocdoni/davinci-sdk';
 import { getProcessRegistryAddress } from '../utils/contractAddresses';
 import { Wallet, JsonRpcSigner } from 'ethers';
 
 interface ShowResultsScreenProps {
-  onBack: () => void;
-  onNext: () => void;
-  wallet: Wallet | JsonRpcSigner;
+  readonly onBack: () => void;
+  readonly onNext: () => void;
+  readonly wallet: Wallet | JsonRpcSigner;
 }
 
 interface QuestionResult {
@@ -29,14 +26,49 @@ interface QuestionResult {
   choices: Array<{ title: string; votes: number }>;
 }
 
-export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResultsScreenProps) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
-  const orgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID || process.env.ORGANIZATION_ID;
+interface ProcessDetails {
+  id: string;
+  organizationId: string;
+  metadataURI: string;
+}
+
+interface MetadataQuestion {
+  title: { default: string };
+  choices: Array<{ title: { default: string }; value: number }>;
+}
+
+interface Metadata {
+  questions: MetadataQuestion[];
+}
+
+export default function ShowResultsScreen({ onBack, wallet }: Readonly<Omit<ShowResultsScreenProps, 'onNext'>>) {
+  const router = useRouter();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL;
+  const orgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID ?? process.env.ORGANIZATION_ID;
   if (!apiUrl || !orgId) throw new Error('API_URL and ORGANIZATION_ID are required');
 
   const [questions, setQuestions] = useState<QuestionResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to map metadata questions to results
+  const mapQuestionsFromMetadata = (metadata: Metadata, resultsArray: readonly unknown[]): QuestionResult[] => {
+    let idx = 0;
+    return metadata.questions.map((q: MetadataQuestion) => {
+      const choices = q.choices.map((c) => {
+        const votes = resultsArray[idx] ?? 0;
+        idx++;
+        return {
+          title: c.title.default,
+          votes: Number(votes),
+        };
+      });
+      return {
+        title: q.title.default,
+        choices,
+      };
+    });
+  };
 
   useEffect(() => {
     (async () => {
@@ -53,10 +85,14 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
             }
           })
         );
-        const filtered = (allDetails as any[]).filter(
-          (p) => p && p.organizationId.toLowerCase() === orgId.toLowerCase()
+        const filtered = (allDetails.filter(Boolean) as ProcessDetails[]).filter(
+          (p) => p.organizationId.toLowerCase() === orgId.toLowerCase()
         );
-        if (!filtered.length) throw new Error(`No processes found for org ${orgId}`);
+        if (!filtered.length) {
+          const errorMsg = `No processes found for org ${orgId}`;
+          setError(errorMsg);
+          return;
+        }
         filtered.sort((a, b) => {
           try {
             return BigInt(a.id) > BigInt(b.id) ? -1 : 1;
@@ -75,26 +111,15 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
         // 3. fetch metadata questions
         const metadataUrl = latest.metadataURI;
         const metaResp = await fetch(metadataUrl);
-        if (!metaResp.ok) throw new Error(`Failed to fetch metadata: ${metaResp.statusText}`);
-        const metadata = await metaResp.json();
+        if (!metaResp.ok) {
+          const errorMsg = `Failed to fetch metadata: ${metaResp.statusText}`;
+          setError(errorMsg);
+          return;
+        }
+        const metadata = await metaResp.json() as Metadata;
 
         // 4. map results into questions
-        let idx = 0;
-        const questionsData: QuestionResult[] = metadata.questions.map((q: any) => {
-          const choices = q.choices.map((c: any) => {
-            const votes = resultsArray[idx] ?? 0;
-            idx++;
-            return {
-              title: c.title.default,
-              votes: Number(votes),
-            };
-          });
-          return {
-            title: q.title.default,
-            choices,
-          };
-        });
-
+        const questionsData = mapQuestionsFromMetadata(metadata, resultsArray);
         setQuestions(questionsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -128,8 +153,9 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
         <CardContent>
           {questions.map((question, qi) => {
             const total = question.choices.reduce((sum, c) => sum + c.votes, 0) || 1;
+            const questionKey = `question-${qi}-${question.title}`;
             return (
-              <Box key={qi} sx={{ mb: 4 }}>
+              <Box key={questionKey} sx={{ mb: 4 }}>
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" align="left">{question.title}</Typography>
                   <Typography variant="body2" color="text.secondary" align="left">
@@ -138,8 +164,9 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
                 </Box>
                 {question.choices.map((choice, ci) => {
                   const percent = Math.round((choice.votes / total) * 100);
+                  const choiceKey = `choice-${qi}-${ci}-${choice.title}`;
                   return (
-                    <Box key={ci} sx={{ mb: 2 }}>
+                    <Box key={choiceKey} sx={{ mb: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography>{choice.title}</Typography>
                         <Typography variant="body2" color="text.secondary">
@@ -171,6 +198,25 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
           })}
         </CardContent>
       </Card>
+
+      {/* Participate in next voting button */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => router.push('/')}
+          sx={{
+            px: 4,
+            py: 1.5,
+            fontSize: '1.1rem',
+            borderRadius: 2,
+            textTransform: 'none',
+          }}
+        >
+          Participate in the next voting
+        </Button>
+      </Box>
+
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
         
       </Box>
