@@ -13,9 +13,6 @@ const DonationView = dynamic(
 import StepIndicator from '@/components/StepIndicator';
 import { ThemeProvider, createTheme, Box } from '@mui/material';
 import { Wallet, JsonRpcSigner } from 'ethers';
-import CensusCreationScreen from '@/components/CensusCreationScreen';
-import CreateElectionScreen from '@/components/CreateElectionScreen';
-import CheckElectionScreen from '@/components/CheckElectionScreen';
 const VotingScreen = dynamic(
   () => import('@/components/VotingScreen'),
   { ssr: false, loading: () => <div>Loading voting screen…</div> }
@@ -100,12 +97,7 @@ export default function Home() {
           />
         );
       case Step.Vote:
-        return (
-          <VotingScreen
-            onNext={() => setCurrentStep(Step.EndProcess)}
-            onBack={handleBack}
-          />
-        );
+        return <VotingScreen onBack={handleBack} />;
       case Step.EndProcess:
         return wallet ? (
           <EndProcessScreen
