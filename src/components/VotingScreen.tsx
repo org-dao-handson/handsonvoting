@@ -42,32 +42,6 @@ interface Question extends IQuestion {
   choices: Array<{ title: MultiLanguage<string>; value: number }>;
 }
 
-interface VotingScreenProps {
-  readonly onBackAction: () => void;
-}
-
-interface ProcessDetails {
-  id: string;
-  organizationId: string;
-  state: string;
-  metadataURI: string;
-  encryptionKey: { x: string; y: string };
-  census: { censusRoot: string };
-  censusId: string;
-}
-
-interface CensusProof {
-  weight: string;
-  // Add other properties as needed
-}
-
-interface WindowWithEthereum extends Window {
-  ethereum?: {
-    request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-    // Add other ethereum properties as needed
-  };
-}
-
 const VOTE_STEPS = [
   'Generate Census Proof',
   'Generate ZK Inputs',
@@ -75,9 +49,9 @@ const VOTE_STEPS = [
   'Submit Vote',
 ];
 
-export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProps>) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL;
-  const orgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID ?? process.env.ORGANIZATION_ID;
+export default function VotingScreen({ onBack }: { onBack: () => void }) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
+  const orgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID || process.env.ORGANIZATION_ID;
   if (!apiUrl || !orgId) throw new Error('API_URL and ORGANIZATION_ID are required');
 
   const router = useRouter();
@@ -94,7 +68,7 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
   const [error, setError] = useState<string | null>(null);
   const [canProceedToResults, setCanProceedToResults] = useState<boolean>(false);
 
-  const [proofObj, setProofObj] = useState<CensusProof | null>(null);
+  const [proofObj, setProofObj] = useState<any>(null);
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [voteId, setVoteId] = useState<string | null>(null);
   const [voteStatus, setVoteStatus] = useState<string | null>(null);
@@ -138,109 +112,89 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
     };
   }, [proceedToResultsUrl]);
 
-  // Helper function to get vote status alert severity
-  const getVoteStatusSeverity = (status: string): 'success' | 'error' | 'info' => {
-    if (status === 'settled') return 'success';
-    if (status === 'error') return 'error';
-    return 'info';
-  };
+  useEffect(() => {
+    async function init() {
+      try {
+        const api = new VocdoniApiService(apiUrl!);
+        const allIds = await api.listProcesses();
+        const allDetails = await Promise.all(
+          allIds.map(async (id) => { try { return await api.getProcess(id); } catch { return null; } }),
+        );
+        const filtered = (allDetails as any[]).filter(
+          (p) => p && p.organizationId.toLowerCase() === orgId!.toLowerCase(),
+        );
+        if (!filtered.length) throw new Error(`No processes found for org ${orgId}`);
+        filtered.sort((a, b) => {
+          try { return BigInt(a.id) > BigInt(b.id) ? -1 : 1; } catch { return b.id.localeCompare(a.id); }
+        });
+        const latest = filtered[0];
+        const closed = ['closed', 'ended', 'results'].includes(latest.state);
 
-  // Helper function to initialize the component
-  const initializeVoting = async (): Promise<void> => {
-    try {
-      const api = new VocdoniApiService(apiUrl);
-      const allIds = await api.listProcesses();
-      const allDetails = await Promise.all(
-        allIds.map(async (id) => {
+        setDetails({
+          processId: latest.id,
+          encryptionPubKey: [latest.encryptionKey.x, latest.encryptionKey.y],
+          censusRoot: latest.census.censusRoot,
+          metadataUrl: latest.metadataURI,
+          censusId: latest.censusId,
+          state: latest.state,
+        });
+        setIsClosed(closed);
+
+        if ((window as any).ethereum && !closed) {
+          const provider = new BrowserProvider((window as any).ethereum);
+          const signer = await provider.getSigner();
+          const acct = await signer.getAddress();
+          setAddress(acct);
           try {
-            return await api.getProcess(id);
+            const proof = await api.getCensusProof(latest.census.censusRoot, acct);
+            setProofObj(proof);
+            const weightHex = proof.weight;
+            const weightNum = BigInt(weightHex.startsWith('0x') ? weightHex.slice(2) : weightHex);
+            setEligible(weightNum > 0n);
+            setMyWeight(weightNum.toString());
           } catch {
-            return null;
+            setEligible(true);
+            setMyWeight(null);
           }
-        }),
-      );
-      const filtered = (allDetails.filter(Boolean) as ProcessDetails[]).filter(
-        (p) => p.organizationId.toLowerCase() === orgId.toLowerCase(),
-      );
-      if (!filtered.length) {
-        setError(`No processes found for org ${orgId}`);
-        return;
-      }
-      filtered.sort((a, b) => {
-        try {
-          return BigInt(a.id) > BigInt(b.id) ? -1 : 1;
-        } catch {
-          return b.id.localeCompare(a.id);
         }
-      });
-      const latest = filtered[0];
-      const closed = ['closed', 'ended', 'results'].includes(latest.state);
 
-      setDetails({
-        processId: latest.id,
-        encryptionPubKey: [latest.encryptionKey.x, latest.encryptionKey.y],
-        censusRoot: latest.census.censusRoot,
-        metadataUrl: latest.metadataURI,
-        censusId: latest.censusId,
-        state: latest.state,
-      });
-      setIsClosed(closed);
-
-      const windowWithEth = window as WindowWithEthereum;
-      if (windowWithEth.ethereum && !closed) {
-        const provider = new BrowserProvider(windowWithEth.ethereum);
-        const signer = await provider.getSigner();
-        const acct = await signer.getAddress();
-        setAddress(acct);
-        try {
-          const proof = await api.getCensusProof(latest.census.censusRoot, acct);
-          setProofObj(proof as CensusProof);
-          const weightHex = (proof as CensusProof).weight;
-          const weightNum = BigInt(weightHex.startsWith('0x') ? weightHex.slice(2) : weightHex);
-          setEligible(weightNum > 0n);
-          setMyWeight(weightNum.toString());
-        } catch {
-          setEligible(true);
-          setMyWeight(null);
-        }
+        if (!latest.metadataURI) throw new Error('Metadata URL undefined');
+        const hash = latest.metadataURI.split('/').pop()!;
+        const meta = await api.getMetadata(hash);
+        const qs: Question[] = meta.questions.map((q) => ({
+          ...q,
+          title: q.title || { default: '' },
+          description: q.description || { default: '' },
+          choices: q.choices.map((c) => ({ title: c.title || { default: '' }, value: c.value })),
+        }));
+        setQuestions(qs);
+        const initAns: Record<number, number> = {};
+        qs.forEach((_, i) => { initAns[i] = -1; });
+        setAnswers(initAns);
+      } catch (e: any) {
+        console.error(e);
+        setError(e.message);
+      } finally {
+        setLoading(false);
       }
-
-      if (!latest.metadataURI) {
-        setError('Metadata URL undefined');
-        return;
-      }
-      const hash = latest.metadataURI.split('/').pop();
-      if (!hash) {
-        setError('Invalid metadata URL');
-        return;
-      }
-      const meta = await api.getMetadata(hash);
-      const qs: Question[] = meta.questions.map((q) => ({
-        ...q,
-        title: q.title ?? { default: '' },
-        description: q.description ?? { default: '' },
-        choices: q.choices.map((c) => ({ title: c.title ?? { default: '' }, value: c.value })),
-      }));
-      setQuestions(qs);
-      const initAns: Record<number, number> = {};
-      qs.forEach((_, i) => { initAns[i] = -1; });
-      setAnswers(initAns);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(error);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    // ...existing code...
-  }, [proceedToResultsUrl]);
-
-  useEffect(() => {
-    initializeVoting();
+    init();
   }, [apiUrl, orgId]);
+
+  useEffect(() => {
+    if (!voteSubmitted || !voteId || !details) return;
+    const api = new VocdoniApiService(apiUrl!);
+    const interval = setInterval(async () => {
+      try {
+        const { status } = await api.getVoteStatus(details.processId.replace(/^0x/, ''), voteId);
+        setVoteStatus(status);
+        if (['settled', 'error'].includes(status)) clearInterval(interval);
+      } catch (err) {
+        console.error(err);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [voteSubmitted, voteId, details, apiUrl]);
 
   const castVote = async () => {
     if (!details || !eligible) return;
@@ -253,7 +207,7 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
     setLoading(true);
     setActiveStep(0);
     try {
-      const api = new VocdoniApiService(apiUrl);
+      const api = new VocdoniApiService(apiUrl!);
       const proc = await api.getProcess(details.processId);
       setActiveStep(1);
       const myW = BigInt(proofObj.weight.startsWith('0x') ? proofObj.weight.slice(2) : proofObj.weight).toString();
@@ -261,13 +215,8 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
       const kStr = BigInt('0x' + kHex).toString();
       const info: InfoResponse = await api.getInfo();
       const sdk = new BallotProof({ wasmExecUrl: info.ballotProofWasmHelperExecJsUrl, wasmUrl: info.ballotProofWasmHelperUrl });
-      await sdk.init();
-      setActiveStep(2);
-      const flat = questions.flatMap((q, i) => {
-        const arr = Array(q.choices.length).fill('0');
-        arr[answers[i]] = myW;
-        return arr;
-      });
+      await sdk.init(); setActiveStep(2);
+      const flat = questions.flatMap((q, i) => { const arr = Array(q.choices.length).fill('0'); arr[answers[i]] = myW; return arr; });
       const fieldValues = flat.concat(Array(8 - flat.length).fill('0')).slice(0, 8);
       const inputs: BallotProofInputs = {
         address: address.replace(/^0x/, ''),
@@ -282,18 +231,9 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
       const { circomInputs, ballot, ballotInputsHash, voteId: outVoteId } = await sdk.proofInputs(inputs);
       const circom = new CircomProof({ wasmUrl: info.circuitUrl, zkeyUrl: info.provingKeyUrl, vkeyUrl: info.verificationKeyUrl });
       const { proof, publicSignals } = await circom.generate(circomInputs);
-      const isProofValid = await circom.verify(proof, publicSignals);
-      if (!isProofValid) {
-        setError('Proof verification failed');
-        return;
-      }
+      if (!(await circom.verify(proof, publicSignals))) throw new Error('Proof verification failed');
       setActiveStep(4);
-      const windowWithEth = window as WindowWithEthereum;
-      if (!windowWithEth.ethereum) {
-        setError('Ethereum provider not found');
-        return;
-      }
-      const provider = new BrowserProvider(windowWithEth.ethereum);
+      const provider = new BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
       const sigBytes = hexStringToUint8Array(outVoteId);
       const signature = await signer.signMessage(sigBytes);
@@ -308,15 +248,13 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
         voteId: outVoteId,
       };
       await api.submitVote(voteReq);
-      setVoteId(outVoteId.replace(/^0x/, ''));
-      setVoteSubmitted(true);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage.includes('process is not accepting votes')) {
-        setClosedError(errorMessage);
+      setVoteId(outVoteId.replace(/^0x/, '')); setVoteSubmitted(true);
+    } catch (e: any) {
+      if (e.message?.includes('process is not accepting votes')) {
+        setClosedError(e.message);
         setIsClosed(true);
       } else {
-        setError(errorMessage);
+        setError(e.message);
       }
     } finally {
       setLoading(false);
@@ -335,50 +273,42 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
     return (
       <Box sx={{ maxWidth: 600, mx: 'auto', my: 4 }}>
         <Typography variant="h4" gutterBottom>Voting Closed</Typography>
-        <Alert severity="info">{closedError ?? 'This voting process is closed.'}</Alert>
+        <Alert severity="info">{closedError || 'This voting process is closed.'}</Alert>
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-          <Button variant="outlined" onClick={onBackAction}>Back</Button>
+          <Button variant="outlined" onClick={onBack}>Back</Button>
           <Button variant="contained" onClick={() => router.push('/results')} disabled={!canProceedToResults}>Next</Button>
         </Box>
       </Box>
     );
   }
 
-  // Render voting interface
-  const renderVotingInterface = () => {
-    if (!address) {
-      return <Alert severity="info">Connect your wallet to vote.</Alert>;
-    }
+  return (
+    <Box sx={{ maxWidth: 600, mx: 'auto', my: 4 }}>
+      <Typography variant="h4" gutterBottom>Cast Your Vote</Typography>
 
-    if (!eligible) {
-      return <Alert severity="warning">Your address {address} is not eligible to vote in this election.</Alert>;
-    }
-
-    if (voteSubmitted) {
-      return (
+      {!address ? (
+        <Alert severity="info">Connect your wallet to vote.</Alert>
+      ) : !eligible ? (
+        <Alert severity="warning">Your address {address} is not eligible to vote in this election.</Alert>
+      ) : voteSubmitted ? (
         <>
           <Alert severity="success">Vote submitted!</Alert>
           {voteStatus && (
-            <Alert severity={getVoteStatusSeverity(voteStatus)} sx={{ mt: 2 }}>
+            <Alert severity={voteStatus === 'settled' ? 'success' : voteStatus === 'error' ? 'error' : 'info'} sx={{ mt: 2 }}>
               Vote status: {voteStatus}
             </Alert>
           )}
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-            <Button variant="outlined" onClick={onBackAction}>Back</Button>
+            <Button variant="outlined" onClick={onBack}>Back</Button>
             <Button variant="contained" onClick={() => router.push('/results')} disabled={voteStatus !== 'settled' || !canProceedToResults}>
               Next
             </Button>
           </Box>
         </>
-      );
-    }
-
-    return (
-      <>
-        {questions.map((q, i) => {
-          const questionKey = `question-${i}-${q.title?.default || 'untitled'}`;
-          return (
-            <Box key={questionKey} sx={{ mb: 2 }}>
+      ) : (
+        <>
+          {questions.map((q, i) => (
+            <Box key={i} sx={{ mb: 2 }}>
               <Typography variant="h6">{q.title?.default}</Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>{q.description?.default}</Typography>
               {eligible && myWeight !== null && (
@@ -390,51 +320,41 @@ export default function VotingScreen({ onBackAction }: Readonly<VotingScreenProp
                 value={answers[i]}
                 onChange={(e) => setAnswers((prev) => ({ ...prev, [i]: +e.target.value }))}
               >
-                {q.choices.map((c, ci) => {
-                  const choiceKey = `choice-${i}-${ci}-${c.title?.default || 'choice'}`;
-                  return (
-                    <FormControlLabel
-                      key={choiceKey}
-                      value={ci}
-                      control={<Radio />}
-                      label={c.title.default}
-                    />
-                  );
-                })}
+                {q.choices.map((c, ci) => (
+                  <FormControlLabel
+                    key={ci}
+                    value={ci}
+                    control={<Radio />}
+                    label={c.title.default}
+                  />
+                ))}
               </RadioGroup>
             </Box>
-          );
-        })}
-
-        <Stepper activeStep={activeStep} sx={{ my: 3 }}>
-          {VOTE_STEPS.map((label) => (
-            <Step key={label}><StepLabel>{label}</StepLabel></Step>
           ))}
-        </Stepper>
 
-        <Button
-          variant="contained"
-          fullWidth
-          onClick={castVote}
-          disabled={voteSubmitted || Object.values(answers).some((v) => v < 0)}
-        >
-          {voteSubmitted ? 'Submitting…' : 'Cast Vote'}
-        </Button>
+          <Stepper activeStep={activeStep} sx={{ my: 3 }}>
+            {VOTE_STEPS.map((label) => (
+              <Step key={label}><StepLabel>{label}</StepLabel></Step>
+            ))}
+          </Stepper>
 
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-          <Button variant="outlined" onClick={onBackAction}>Back</Button>
-          <Button variant="contained" onClick={() => router.push('/results')} disabled={!voteSubmitted || !canProceedToResults}>
-            Next
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={castVote}
+            disabled={voteSubmitted || Object.values(answers).some((v) => v < 0)}
+          >
+            {voteSubmitted ? 'Submitting…' : 'Cast Vote'}
           </Button>
-        </Box>
-      </>
-    );
-  };
 
-  return (
-    <Box sx={{ maxWidth: 600, mx: 'auto', my: 4 }}>
-      <Typography variant="h4" gutterBottom>Cast Your Vote</Typography>
-      {renderVotingInterface()}
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+            <Button variant="outlined" onClick={onBack}>Back</Button>
+            <Button variant="contained" onClick={() => router.push('/results')} disabled={!voteSubmitted || !canProceedToResults}>
+              Next
+            </Button>
+          </Box>
+        </>
+      )}
     </Box>
   );
 }

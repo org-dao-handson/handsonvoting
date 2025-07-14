@@ -118,7 +118,7 @@ export default function Home() {
       }
 
       // offset === 1 → VotingScreen
-      return <VotingScreen onBackAction={handleBack} />;
+      return <VotingScreen onBack={handleBack} />;
     }
 
     // Show Results now immediately follows
