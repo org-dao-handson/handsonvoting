@@ -66,10 +66,6 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         Welcome to the UZH Public Goods Game
       </Typography>
 
-      <Typography variant="h6" color="primary" gutterBottom sx={{ fontStyle: 'italic' }}>
-        DDiB 2025
-      </Typography>
-      
       <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 4 }}>
         Public goods are important and need to be maintained!
       </Typography>
