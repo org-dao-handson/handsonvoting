@@ -104,6 +104,10 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
     })();
   }, [apiUrl, orgId, wallet]);
 
+  const handleParticipateNext = () => {
+    window.location.href = '/';
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
@@ -172,7 +176,14 @@ export default function ShowResultsScreen({ onBack, onNext, wallet }: ShowResult
         </CardContent>
       </Card>
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-        
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleParticipateNext}
+          size="large"
+        >
+          Participate in the next voting
+        </Button>
       </Box>
     </Box>
   );
