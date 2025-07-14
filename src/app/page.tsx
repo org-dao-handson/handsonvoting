@@ -126,6 +126,7 @@ export default function Home() {
     if (currentStep === resultsIndex) {
       return wallet ? (
         <ShowResultsScreen
+          onNext={() => setCurrentStep(0)}
           onBack={handleBack}
           wallet={wallet}
         />
