@@ -71,7 +71,7 @@ export default function WelcomeScreen({ onNext }: WelcomeScreenProps) {
       </Typography>
       
       <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 4 }}>
-        Public goods are important and need to be maintained! Lets not talk about the commons here :)
+        Public goods are important and need to be maintained!
       </Typography>
 
       <Card sx={{ mb: 4 }}>
